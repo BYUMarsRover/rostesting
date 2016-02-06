@@ -27,16 +27,14 @@ int main(int argc, char** argv)
     {
         ros::spinOnce(); // spin let ros sit there and run it's own while loop to listen to all of it's subscribers and wait
             // spinOnce means "check all of my subscribers, and do something if there's a message. Otherwise, I'm going to keep doing stuff"
-
-        if(joy_msgs.axes.size() >= 4)
-        {
-            rover_msgs::Arm arm_msgs;
-            arm_msgs.tur = joy_msgs.axes[1]*-500 + 1500;  // positive
-            arm_msgs.sh = joy_msgs.axes[4]*-500 + 1500; // negative
-
-            arm_command_pub.publish(arm_msgs);
-        }
-
+  
+	    if(joy_msgs.axes.size() >= 4)
+	      {
+		rover_msgs::Arm arm_msgs;
+		arm_msgs.tur = joy_msgs.axes[1]*-500 + 1500;  // positive
+		arm_msgs.sh = joy_msgs.axes[4]*-500 + 1500; // negative
+		
+	      }
         r.sleep();
     }
 
