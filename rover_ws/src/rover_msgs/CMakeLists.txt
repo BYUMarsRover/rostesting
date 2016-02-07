@@ -47,6 +47,7 @@ find_package(catkin REQUIRED std_msgs message_generation)
    NavGoal.msg
    Arm.msg
    SciFeedback.msg
+   Pololu.msg
  )
 
 ## Generate services in the 'srv' folder
