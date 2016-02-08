@@ -25,6 +25,8 @@ class XBOX():
     def polCallback(self,msg):
         self.q_fb.q1=msg.q1
         self.q_fb.q2=msg.q2
+        self.q_fb.q3=msg.q3
+        self.q_fb.q4=msg.q4
 
     def joyCallback(self,msg):
         self.joy=msg
@@ -43,24 +45,46 @@ class XBOX():
     def polCommand(self):
         # Calculate how to command arm (position control)
         # Joint 1
-        if self.joy.axes[1]>.5:
+        if self.joy.axes[0] > .5:
             self.q_cmd.q1 = self.q_fb.q1+1.0
-            if self.q_cmd.q1 > 2000:
-                self.q_cmd.q1 = 2000
-        elif self.joy.axes[1]<-.5:
+            if self.q_cmd.q1 > 4092:
+                self.q_cmd.q1 = 4092
+        elif self.joy.axes[0] < -.5:
             self.q_cmd.q1 = self.q_fb.q1-1.0
-            if self.q_cmd.q1 < 1000:
-                self.q_cmd.q1 = 1000
+            if self.q_cmd.q1 < 0:
+                self.q_cmd.q1 = 0
+
         # Joint 2
-        if self.joy.axes[7]>.5:
+        if self.joy.axes[1] > .5:
             self.q_cmd.q2 = self.q_fb.q2+1.0
             if self.q_cmd.q2 > 4092:
                 self.q_cmd.q2 = 4092
-        elif self.joy.axes[7]<-.5:
+        elif self.joy.axes[1]<-.5:
             self.q_cmd.q2 = self.q_fb.q2-1.0
             if self.q_cmd.q2 < 0:
                 self.q_cmd.q2 = 0
-        # Publish commands
+
+        # Joint 3
+        if self.joy.axes[7] > .5:
+            self.q_cmd.q3 = self.q_fb.q3+1.0
+            if self.q_cmd.q3 > 4092:
+                self.q_cmd.q3 = 4092
+        elif self.joy.axes[7] < -.5:
+            self.q_cmd.q3 = self.q_fb.q3-1.0
+            if self.q_cmd.q3 < 0:
+                self.q_cmd.q3 = 0
+
+        # Joint 4
+        if self.joy.axes[6] > .5:
+            self.q_cmd.q4 = self.q_fb.q4+1.0
+            if self.q_cmd.q4 > 4092:
+                self.q_cmd.q4 = 4092
+        elif self.joy.axes[6]<-.5:
+            self.q_cmd.q4 = self.q_fb.q4-1.0
+            if self.q_cmd.q4 < 0:
+                self.q_cmd.q4 = 0
+
+        # Publish arm commands
         self.pub1.publish(self.q_cmd)
 
     def driveCommand(self):
