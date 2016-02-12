@@ -18,9 +18,9 @@ class XBOX():
     # Publishers and Subscribers
         self.sub1 = rospy.Subscriber('pololu_feedback', Pololu, self.polCallback)
         self.sub2 = rospy.Subscriber('joy', Joy, self.joyCallback)
-        self.pub1 = rospy.Publisher('/pololu_command', Pololu, queue_size = 1)
-        self.pub2 = rospy.Publisher('/drive_command', Drive, queue_size = 1)
-        self.pub3 = rospy.Publisher('/mode', String, queue_size = 1)
+        self.pub1 = rospy.Publisher('/pololu_command', Pololu, queue_size = 10)
+        self.pub2 = rospy.Publisher('/drive_command', Drive, queue_size = 10)
+        self.pub3 = rospy.Publisher('/mode', String, queue_size = 10)
     # Callbacks
     def polCallback(self,msg):
         self.q_fb.q1=msg.q1

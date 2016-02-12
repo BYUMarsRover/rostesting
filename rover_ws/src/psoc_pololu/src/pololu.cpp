@@ -5,7 +5,9 @@
 #include <std_msgs/String.h>
 #include <rover_msgs/Pololu.h>
 #include <inttypes.h>
+// #include <iostream>
 
+// using namespace std;
 using namespace pololu;
 using namespace conn;
 
@@ -45,15 +47,11 @@ void Pololu::receive(const uint8_t *bytes, ssize_t nbytes)
     received = true;
     char* output = new char[nbytes];
     memcpy(output, bytes, nbytes);
-    // this->out << std::string(output);
     uint16_t out;
-    // this->out = output;
     sscanf(output, "%" SCNu16, &out);
 
-// todo: we will need to do some parsing here but I think we'll leave that up to marshal
-   // std_msgs::String result;
-   // result.data = out.str();
-   // data_publisher_.publish(result);
+    // cout<<out;
+
     rover_msgs::Pololu result;
     result.q1 = out;
     data_publisher_.publish(result);
@@ -61,7 +59,7 @@ void Pololu::receive(const uint8_t *bytes, ssize_t nbytes)
 
 void Pololu::send(uint16_t q1, uint16_t q2, uint16_t q3, uint16_t q4)
 {
-  uint8_t array[6];
+  uint8_t array[10];
   array[0] = 0xEA;
   array[1] = 0xE3;
   array[2] = q1&0xff;
