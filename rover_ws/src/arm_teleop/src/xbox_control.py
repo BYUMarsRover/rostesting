@@ -27,6 +27,8 @@ class XBOX():
         self.q_fb.q2=msg.q2
         self.q_fb.q3=msg.q3
         self.q_fb.q4=msg.q4
+        self.q_fb.q5=msg.q5
+        self.q_fb.q6=msg.q6
 
     def joyCallback(self,msg):
         self.joy=msg

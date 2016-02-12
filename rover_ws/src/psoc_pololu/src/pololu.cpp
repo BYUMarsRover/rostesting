@@ -57,9 +57,9 @@ void Pololu::receive(const uint8_t *bytes, ssize_t nbytes)
     data_publisher_.publish(result);
 }
 
-void Pololu::send(uint16_t q1, uint16_t q2, uint16_t q3, uint16_t q4)
+void Pololu::send(uint16_t q1, uint16_t q2, uint16_t q3, uint16_t q4, uint16_t q5, uint16_t q6)
 {
-  uint8_t array[10];
+  uint8_t array[14];
   array[0] = 0xEA;
   array[1] = 0xE3;
   array[2] = q1&0xff;
@@ -70,8 +70,12 @@ void Pololu::send(uint16_t q1, uint16_t q2, uint16_t q3, uint16_t q4)
   array[7] = (q3>>8)&0xff;
   array[8] = q4&0xff;
   array[9] = (q4>>8)&0xff;
+  array[10] = q5&0xff;
+  array[11] = (q5>>8)&0xff;
+  array[12] = q6&0xff;
+  array[13] = (q6>>8)&0xff;
 
-  link->send_bytes(array,10);
+  link->send_bytes(array,14);
 }
 
 void Pololu::terminate_cb() 
@@ -80,5 +84,5 @@ void Pololu::terminate_cb()
 
 void Pololu::commandCallback_2(const rover_msgs::Pololu &command_msg)
 {
-  this->send(command_msg.q1,command_msg.q2,command_msg.q3,command_msg.q4);
+  this->send(command_msg.q1,command_msg.q2,command_msg.q3,command_msg.q4,command_msg.q5,command_msg.q6);
 }

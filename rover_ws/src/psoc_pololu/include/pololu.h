@@ -25,7 +25,7 @@ public:
     bool received;
     std::stringstream out;
     /* void send(std::string command); */
-    void send(uint16_t, uint16_t, uint16_t, uint16_t);
+    void send(uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t);
 
 private:
     ros::NodeHandle nh_;
