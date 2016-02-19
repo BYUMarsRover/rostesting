@@ -47,14 +47,20 @@ void Pololu::receive(const uint8_t *bytes, ssize_t nbytes)
     received = true;
     char* output = new char[nbytes];
     memcpy(output, bytes, nbytes);
-    uint16_t out;
-    sscanf(output, "%" SCNu16, &out);
 
-    // cout<<out;
+    // rover_msgs::Pololu result;
+    // result.q1 = (output[1] << 8 | output[2]);
+    // result.q2 = (output[3] << 8 | output[4]);
+    // result.q3 = (output[5] << 8 | output[6]);
+    // result.q4 = (output[7] << 8 | output[8]);
+    // result.q5 = (output[9] << 8 | output[10]);
+    // result.q6 = (output[11] << 8 | output[12]);
+    
+    // data_publisher_.publish(result);
 
-    rover_msgs::Pololu result;
-    result.q1 = out;
-    data_publisher_.publish(result);
+    // rover_msgs::Pololu result;
+    // result.q1 = out;
+    // data_publisher_.publish(result);
 }
 
 void Pololu::send(uint16_t q1, uint16_t q2, uint16_t q3, uint16_t q4, uint16_t q5, uint16_t q6)
