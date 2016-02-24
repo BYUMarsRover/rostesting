@@ -32,11 +32,15 @@ class CompetitionFunctions():
         # Close the gripper
 
         # Twist the wrist
+
+        # Repeat?
         
     def valve_ccw(self):
         # Close the gripper
 
         # Twist the wrist
+
+        # Repeat?
 
     def bins(self,bin_num):
         if bin_num == 1:
@@ -55,6 +59,8 @@ class CompetitionFunctions():
         # Command The rest of the joints to the positions
 
         # When all of the joints have arriven, open the gripper
+
+        # Go back to the original joint angles
 
     def gas_can(self):
         # This could be tricky. Below is an idea.
@@ -76,7 +82,7 @@ if __name__=='__main__':
         elif user_command == 'close valve':
             CompetitionFunctions.valve_ccw()
 
-        # Moving the arm above the chutes
+        # Moving the arm above the chutes and letting go then returning
         elif user_command == '1':
             CompetitionFunctions.bins(1)
 
@@ -92,6 +98,7 @@ if __name__=='__main__':
         elif user_command == '5':
             CompetitionFunctions.bins(5)
 
+        # Pour the gas can once the nozzle is touching the rim of the container
         elif user_command == 'gas can':
             CompetitionFunctions.gas_can()
 
@@ -99,6 +106,7 @@ if __name__=='__main__':
             print "Invalid command. Enter one of the following commands:"
             print "open valve"
             print "close valve"
+            print "gas can"
             print '1'
             print '2'
             print '3'
