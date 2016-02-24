@@ -123,8 +123,9 @@ class XBOX():
         if self.q_cmd.q4 < 0:
             self.q_cmd.q4 = 0
 
-        # Publish arm commands
-        self.pub1.publish(self.q_cmd)
+        # Publish arm commands if changing position
+        if self.delta_x != [0,0,0,0,0,0]:
+            self.pub1.publish(self.q_cmd)
 
     def driveCommand(self):
         # Calculate drive speeds
