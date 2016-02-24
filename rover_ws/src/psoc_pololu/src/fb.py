@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-import rospy
-import numpy
-import serial
+import rospy, serial, time
 from rover_msgs.msg import Pololu
 
 def read_feedback(ser):
@@ -17,8 +15,11 @@ def read_feedback(ser):
     return values
 
 if __name__ == "__main__":
-    
+    time.sleep(2)
     ser = serial.Serial(port = '/dev/ttyUSB2',baudrate = 9600)
+
+    if(ser.isOpen() == False):
+        print 'serial not open'
 
     rospy.init_node('pol_py_feedback',anonymous = True)
     hz = 5

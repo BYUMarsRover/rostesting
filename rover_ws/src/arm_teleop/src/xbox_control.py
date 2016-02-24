@@ -16,12 +16,13 @@ class XBOX():
         self.prev_y = 0
         self.case = 'Drive'
         
-        self.q_cmd.q1 = 0
-        self.q_cmd.q2 = 0
-        self.q_cmd.q3 = 0
-        self.q_cmd.q4 = 0
+        self.q_cmd.q1 = 2046
+        self.q_cmd.q2 = 2046
+        self.q_cmd.q3 = 2046
+        self.q_cmd.q4 = 2046
         self.q_cmd.q5 = 0
         self.q_cmd.q6 = 0
+        self.q_cmd.grip = 1000
     # Publishers and Subscribers
         self.sub1 = rospy.Subscriber('pololu_feedback', Pololu, self.polCallback)
         self.sub2 = rospy.Subscriber('joy', Joy, self.joyCallback)
@@ -36,6 +37,7 @@ class XBOX():
         self.q_fb.q4=msg.q4
         self.q_fb.q5=msg.q5
         self.q_fb.q6=msg.q6
+        self.q_fb.grip=msg.grip
 
     def joyCallback(self,msg):
         self.joy=msg
@@ -113,6 +115,16 @@ class XBOX():
             if self.q_cmd.q6 < 0:
                 self.q_cmd.q6 = 0
 
+        # Gripper
+        if self.joy.buttons[5] > .5:
+            self.q_cmd.grip = self.q_fb.grip+1.0
+            if self.q_cmd.grip > 2000:
+                self.q_cmd.grip = 2000
+        elif self.joy.buttons[4] > .5:
+            self.q_cmd.grip = self.q_fb.grip-1.0
+            if self.q_cmd.grip < 1000:
+                self.q_cmd.grip = 1000
+
         # Publish arm commands
         self.pub1.publish(self.q_cmd)
 
@@ -127,63 +139,73 @@ class XBOX():
         # Calculate how to command arm (position control)
         # Joint 1
         if self.joy.axes[0] > .5:
-            self.q_cmd.q1 = self.q_cmd.q1+10.0
+            self.q_cmd.q1 = self.q_cmd.q1+50.0
             if self.q_cmd.q1 > 4092:
                 self.q_cmd.q1 = 4092
         elif self.joy.axes[0] < -.5:
-            self.q_cmd.q1 = self.q_cmd.q1-10.0
+            self.q_cmd.q1 = self.q_cmd.q1-50.0
             if self.q_cmd.q1 < 0:
                 self.q_cmd.q1 = 0
 
         # Joint 2
         if self.joy.axes[1] > .5:
-            self.q_cmd.q2 = self.q_cmd.q2+10.0
+            self.q_cmd.q2 = self.q_cmd.q2+50.0
             if self.q_cmd.q2 > 4092:
                 self.q_cmd.q2 = 4092
         elif self.joy.axes[1]<-.5:
-            self.q_cmd.q2 = self.q_cmd.q2-10.0
+            self.q_cmd.q2 = self.q_cmd.q2-50.0
             if self.q_cmd.q2 < 0:
                 self.q_cmd.q2 = 0
 
         # Joint 3
         if self.joy.axes[7] > .5:
-            self.q_cmd.q3 = self.q_cmd.q3+10.0
+            self.q_cmd.q3 = self.q_cmd.q3+50.0
             if self.q_cmd.q3 > 4092:
                 self.q_cmd.q3 = 4092
         elif self.joy.axes[7] < -.5:
-            self.q_cmd.q3 = self.q_cmd.q3-10.0
+            self.q_cmd.q3 = self.q_cmd.q3-50.0
             if self.q_cmd.q3 < 0:
                 self.q_cmd.q3 = 0
 
         # Joint 4
         if self.joy.axes[6] > .5:
-            self.q_cmd.q4 = self.q_cmd.q4+10.0
+            self.q_cmd.q4 = self.q_cmd.q4+50.0
             if self.q_cmd.q4 > 4092:
                 self.q_cmd.q4 = 4092
         elif self.joy.axes[6]<-.5:
-            self.q_cmd.q4 = self.q_cmd.q4-10.0
+            self.q_cmd.q4 = self.q_cmd.q4-50.0
             if self.q_cmd.q4 < 0:
                 self.q_cmd.q4 = 0
 
         # Joint 5
         if self.joy.axes[4] > .5:
-            self.q_cmd.q5 = self.q_cmd.q5+10.0
+            self.q_cmd.q5 = self.q_cmd.q5+50.0
             if self.q_cmd.q5 > 4092:
                 self.q_cmd.q5 = 4092
         elif self.joy.axes[4]<-.5:
-            self.q_cmd.q5 = self.q_cmd.q5-10.0
+            self.q_cmd.q5 = self.q_cmd.q5-50.0
             if self.q_cmd.q5 < 0:
                 self.q_cmd.q5 = 0
 
         # Joint 6
         if self.joy.axes[3] > .5:
-            self.q_cmd.q6 = self.q_cmd.q6+10.0
+            self.q_cmd.q6 = self.q_cmd.q6+50.0
             if self.q_cmd.q6 > 4092:
                 self.q_cmd.q6 = 4092
         elif self.joy.axes[3]<-.5:
-            self.q_cmd.q6 = self.q_cmd.q6-10.0
+            self.q_cmd.q6 = self.q_cmd.q6-50.0
             if self.q_cmd.q6 < 0:
                 self.q_cmd.q6 = 0
+
+        # Gripper
+        if self.joy.buttons[5] > .5:
+            self.q_cmd.grip = self.q_cmd.grip+50.0
+            if self.q_cmd.grip > 2000:
+                self.q_cmd.grip = 2000
+        elif self.joy.buttons[4] > .5:
+            self.q_cmd.grip = self.q_cmd.grip-50.0
+            if self.q_cmd.grip < 1000:
+                self.q_cmd.grip = 1000
 
         # Publish arm commands
         self.pub1.publish(self.q_cmd)
