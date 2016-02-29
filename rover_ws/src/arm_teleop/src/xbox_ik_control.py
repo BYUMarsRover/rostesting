@@ -28,12 +28,12 @@ class XBOX():
 
     # Callbacks
     def polCallback(self,msg):
-        self.q_fb.q1=msg.q1*some_conversion_from_0_4092_to_rad
-        self.q_fb.q2=msg.q2*some_conversion_from_0_4092_to_rad
-        self.q_fb.q3=msg.q3*some_conversion_from_0_4092_to_rad
-        self.q_fb.q4=msg.q4*some_conversion_from_0_4092_to_rad
-        self.q_fb.q5=msg.q5*some_conversion_from_0_4092_to_rad
-        self.q_fb.q6=msg.q6*some_conversion_from_0_4092_to_rad
+        self.q_fb.q1=msg.q1*(3*np.pi/2/4092)-(3*np.pi/4)          # Range of -3pi/4 to 3pi/4
+        self.q_fb.q2=msg.q2*(3*np.pi/4/4092)                      # Range of 0 to 3pi/4
+        self.q_fb.q3=msg.q3*(np.pi/4092)-(3*np.pi/4)              # Range of -3pi/4 to pi/4
+        self.q_fb.q4=msg.q4*(15*np.pi/2/4092)-(15*np.pi/4)        # Range of -15pi/2 to 15pi/2
+        self.q_fb.q5=msg.q5
+        self.q_fb.q6=msg.q6
 
     def joyCallback(self,msg):
         self.joy=msg
@@ -51,6 +51,7 @@ class XBOX():
 
     def polCommand(self):
         self.delta_x = [0,0,0,0,0,0]
+
         # Establish which direction the user wants the EE to move in cartesian space
         # Y Direction (Forward and Back)
         if self.joy.axes[0] > .5:
@@ -95,35 +96,36 @@ class XBOX():
 
         # Convert the new joint angles and prepare to publish
         # Joint 1
-        self.q_cmd.q1 = q_cmd[0]*some_conversion_from_rad_to_0_4092
+        self.q_cmd.q1 = (q_cmd[0]+3*np.pi/4)*(4092/(3*np.pi/2)) # Convert from rad to 0-4092
         if self.q_cmd.q1 > 4092:
             self.q_cmd.q1 = 4092
         if self.q_cmd.q1 < 0:
             self.q_cmd.q1 = 0
 
         #Joint 2
-        self.q_cmd.q2 = q_cmd[1]*some_conversion_from_rad_to_0_4092
+        self.q_cmd.q2 = (q_cmd[1]*4092)/(3*np.pi/4) # Convert from rad to 0-4092
         if self.q_cmd.q2 > 4092:
             self.q_cmd.q2 = 4092
         if self.q_cmd.q2 < 0:
             self.q_cmd.q2 = 0
 
         # Joint 3
-        self.q_cmd.q3 = q_cmd[2]*some_conversion_from_rad_to_0_4092
+        self.q_cmd.q3 = (q_cmd[2]+3*np.pi/4)*(4092/np,pi) # Convert from rad to 0-4092
         if self.q_cmd.q3 > 4092:
             self.q_cmd.q3 = 4092
         if self.q_cmd.q3 < 0:
             self.q_cmd.q3 = 0
 
         # Joint 4
-        self.q_cmd.q4 = q_cmd[3]*some_conversion_from_rad_to_0_4092
+        self.q_cmd.q4 = (q_cmd[3]+15*np.pi/4)*(4092/(15*np.pi/2)) # Convert from rad to 0-4092
         if self.q_cmd.q4 > 4092:
             self.q_cmd.q4 = 4092
         if self.q_cmd.q4 < 0:
             self.q_cmd.q4 = 0
 
-        # Publish arm commands
-        self.pub1.publish(self.q_cmd)
+        # Publish arm commands if changing position
+        if self.delta_x != [0,0,0,0,0,0]:
+            self.pub1.publish(self.q_cmd)
 
     def driveCommand(self):
         # Calculate drive speeds
@@ -132,16 +134,17 @@ class XBOX():
         # Publish drive commands
         self.pub2.publish(self.speed)
 
-    def local_IK(self):
+    def local_ik(self):
         #Find the change in joint angles that moves the EE in delta x direction
         J = self.kin.jacobian04(self.kin.jangles)#Change this to jacobian06 with 6 DoF
         J_t = np.pinv(J)
-        delta_q = np.dot(J_t,self.delta_x)*.001
+        delta_q = np.dot(J_t,self.delta_x)*.01
+        print "delta q",delta_q
         q_new = self.kin.jangles + delta_q
         return q_new
 
 if __name__ == '__main__':
-    rospy.init_node('xbox_control', anonymous = True)
+    rospy.init_node('xbox_ik_control', anonymous = True)
     hz = 100
     rate = rospy.Rate(hz)
     xbox=XBOX()
