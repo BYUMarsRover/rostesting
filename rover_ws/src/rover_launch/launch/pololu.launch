@@ -1,0 +1,8 @@
+<launch>
+
+  <node pkg="pololu_driver" type="pololu_driver_node" name="pololu_driver_node">
+  </node>
+  <node pkg="pololu_driver" type="fb.py" name="pololu_feedback">
+  </node>
+
+</launch>
