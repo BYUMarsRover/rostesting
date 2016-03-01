@@ -48,6 +48,8 @@ find_package(catkin REQUIRED std_msgs message_generation)
    Arm.msg
    SciFeedback.msg
    Pololu.msg
+   All.msg
+   Chutes.msg
  )
 
 ## Generate services in the 'srv' folder
