@@ -53,7 +53,7 @@ void Psoc::receive(const uint8_t *bytes, ssize_t nbytes)
 }
 
 
-void Psoc::send(uint16_t lw, uint16_t rw, uint16_t pan, uint16_t tilt, uint8_t camnum, uint16_t q1, uint16_t q2, uint16_t q3, uint16_t q4, uint16_t q5, uint16_t q6, uint16_t grip, uint16_t chutes)
+void Psoc::send(uint16_t lw, uint16_t rw, uint16_t pan, uint16_t tilt, uint8_t camnum, uint16_t q1, uint16_t q2, uint16_t q3, uint16_t q4, uint16_t q5, uint16_t q6, uint16_t grip, uint8_t chutes)
 {
   uint8_t array[25];
   array[0] = 0xEA;

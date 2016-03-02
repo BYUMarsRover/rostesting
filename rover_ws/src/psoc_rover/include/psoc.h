@@ -27,7 +27,7 @@ public:
     bool received;
     std::stringstream out;
     /* void send(std::string command); */
-    void send(uint16_t, uint16_t, uint16_t, uint16_t, uint8_t);
+    void send(uint16_t, uint16_t, uint16_t, uint16_t, uint8_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint8_t);
 
 private:
     ros::NodeHandle nh_;
@@ -37,7 +37,7 @@ private:
     ros::Publisher data_publisher_;
 
     void commandCallback(const std_msgs::String& command_msg);
-    void commandCallback_2(const rover_msgs::Drive& command_msg);
+    void commandCallback_2(const rover_msgs::All& command_msg);
 
     std::string serialName_;
     int baudrate_;

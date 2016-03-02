@@ -148,7 +148,7 @@ class XBOX():
         self.cmd.lw = self.joy.axes[1]*-500 + 1500
         self.cmd.rw = self.joy.axes[4]*-500 + 1500
         # Publish drive commands
-        self.pub2.publish(self.cmd)
+        self.pub1.publish(self.cmd)
 
     def nofeedback(self):
         # Calculate how to command arm (position control)
