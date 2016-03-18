@@ -11,3 +11,4 @@ uint16 q5
 uint16 q6
 uint16 grip
 uint8 chutes
+uint16 shovel

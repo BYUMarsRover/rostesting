@@ -33,7 +33,7 @@ Psoc::Psoc() :
     command_subscriber_ = nh_.subscribe("rover_command", 1, &Psoc::commandCallback_2, this);
 
     // publications
-    data_publisher_ = nh_.advertise<rover_msgs::SciFeedback>("science_data", 1);
+    data_publisher_ = nh_.advertise<rover_msgs::All>("pololu_feedback", 1);
 }
 
 void Psoc::receive(const uint8_t *bytes, ssize_t nbytes)
@@ -43,19 +43,26 @@ void Psoc::receive(const uint8_t *bytes, ssize_t nbytes)
     char* output = new char[nbytes];
     memcpy(output, bytes, nbytes);
 
-    if(nbytes == 5 && true)//output[0] == something) //todo: figure out the start byte
+    if(output[0] == 0xE3)//output[0] == something) //todo: figure out the start byte
     {
-        rover_msgs::SciFeedback msg;
-        msg.temp = (output[1] << 8 | output[2]);
-        msg.humidity = (output[3] << 8 | output[4]);
-        data_publisher_.publish(msg);
+	rover_msgs::All msg;
+    	msg.q1 = (output[2] << 8 | output[1]);
+    	msg.q2 = (output[4] << 8 | output[3]);
+    	msg.q3 = (output[6] << 8 | output[5]);
+    	msg.q4 = (output[8] << 8 | output[7]);
+    	msg.q5 = (output[10] << 8 | output[9]);
+    	msg.q6 = (output[12] << 8 | output[11]);
+        // rover_msgs::SciFeedback msg;
+        // msg.temp = (output[1] << 8 | output[2]);
+        // msg.humidity = (output[3] << 8 | output[4]);
+    	data_publisher_.publish(msg);
     }
 }
 
 
-void Psoc::send(uint16_t lw, uint16_t rw, uint16_t pan, uint16_t tilt, uint8_t camnum, uint16_t q1, uint16_t q2, uint16_t q3, uint16_t q4, uint16_t q5, uint16_t q6, uint16_t grip, uint8_t chutes)
+void Psoc::send(uint16_t lw, uint16_t rw, uint16_t pan, uint16_t tilt, uint8_t camnum, uint16_t q1, uint16_t q2, uint16_t q3, uint16_t q4, uint16_t q5, uint16_t q6, uint16_t grip, uint8_t chutes, uint16_t shovel)
 {
-  uint8_t array[25];
+  uint8_t array[27];
   array[0] = 0xEA;
   array[1] = lw&0xff;
   array[2] = (lw>>8)&0xff;
@@ -81,8 +88,10 @@ void Psoc::send(uint16_t lw, uint16_t rw, uint16_t pan, uint16_t tilt, uint8_t c
   array[22] = grip&0xff;
   array[23] = (grip>>8)&0xff;
   array[24] = chutes;
+  array[25] = shovel&0xff;
+  array[26] = (shovel>>8)&0xff;
 
-  link->send_bytes(array,25);
+  link->send_bytes(array,27);
 }
 
 void Psoc::terminate_cb() 
@@ -91,5 +100,5 @@ void Psoc::terminate_cb()
 
 void Psoc::commandCallback_2(const rover_msgs::All &command_msg)
 {
-  this->send(command_msg.lw,command_msg.rw,command_msg.pan,command_msg.tilt,command_msg.camnum,command_msg.q1,command_msg.q2,command_msg.q3,command_msg.q4,command_msg.q5,command_msg.q6,command_msg.grip,command_msg.chutes);
+  this->send(command_msg.lw,command_msg.rw,command_msg.pan,command_msg.tilt,command_msg.camnum,command_msg.q1,command_msg.q2,command_msg.q3,command_msg.q4,command_msg.q5,command_msg.q6,command_msg.grip,command_msg.chutes,command_msg.shovel);
 }
