@@ -30,15 +30,16 @@ if __name__ == "__main__":
     pub = rospy.Publisher('/pololu_feedback',Pololu,queue_size = 1)
 
     while not rospy.is_shutdown():
-        values = read_feedback(ser)
-        fb.q1 = values[0]
-        fb.q2 = values[1]
-        fb.q3 = values[2]
-        fb.q4 = values[3]
-        fb.q5 = values[4]
-        fb.q6 = values[5]
-
-        pub.publish(fb)
+        if(ser.isOpen() == True) and len(ser.readlines()) > 1:
+            values = read_feedback(ser)
+            fb.q1 = values[0]
+            fb.q2 = values[1]
+            fb.q3 = values[2]
+            fb.q4 = values[3]
+            fb.q5 = values[4]
+            fb.q6 = values[5]
+            
+            pub.publish(fb)
 
         rate.sleep()
         
