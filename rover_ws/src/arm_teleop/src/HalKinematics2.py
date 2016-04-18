@@ -54,7 +54,7 @@ class HalKinematics(hal_arm_kinematics):
         Jac = self.J[5](jangles)
         epsilon = []
         pose = tf.transformations.quaternion_from_matrix(pose)
-        print pose
+        #print pose
         eita = pose[3]
         epsilon.append(pose[0])
         epsilon.append(pose[1])
@@ -63,6 +63,7 @@ class HalKinematics(hal_arm_kinematics):
         a = np.hstack((np.eye(3,3), np.zeros((3,3))))
         b = np.hstack((np.zeros((3,3)), p))
         J_t = np.vstack((a,b)).dot(Jac)
+        #print Jac
         return J_t
 
     def quat_divide(self,pose_a, pose_b):
@@ -72,48 +73,67 @@ class HalKinematics(hal_arm_kinematics):
         divided = tf.transformations.quaternion_multiply(pose_a, tf.transformations.quaternion_inverse(pose_b))
         return divided
 
-    def delta_x_and_e(self,pose_b, pose_a):
-        quat_divided = self.quat_divide(pose_b, pose_a)
+    def delta_x_and_e(self,pose_d, pose_e,method):
+        quat_divided = self.quat_divide(pose_d, pose_e)
+
         delta_epsilon = []
-        delta_epsilon.append(pose_b[0,3] - pose_a[0,3])
-        delta_epsilon.append(pose_b[1,3] - pose_a[1,3])
-        delta_epsilon.append(pose_b[2,3] - pose_a[2,3])
-        delta_epsilon.append(quat_divided[0])
-        delta_epsilon.append(quat_divided[1])
-        delta_epsilon.append(quat_divided[2])
+        delta_epsilon.append(pose_d[0,3] - pose_e[0,3])
+        delta_epsilon.append(pose_d[1,3] - pose_e[1,3])
+        delta_epsilon.append(pose_d[2,3] - pose_e[2,3])
+
+        if method == 2:
+            delta_epsilon.append(quat_divided[0])
+            delta_epsilon.append(quat_divided[1])
+            delta_epsilon.append(quat_divided[2])
+
+            return delta_epsilon
+
+        if method == 1:
         
-        return delta_epsilon
+            pose_e = tf.transformations.quaternion_from_matrix(pose_e)
+            pose_d = tf.transformations.quaternion_from_matrix(pose_d)
+        
+            e0 = pose_e[3]*np.matrix(pose_d[0:3]).T - pose_d[3]*np.matrix(pose_e[0:3]).T - self.skew(pose_d[0:3])*np.matrix(pose_e[0:3]).T
+            delta_epsilon.append(e0[0,0])
+            delta_epsilon.append(e0[1,0])
+            delta_epsilon.append(e0[2,0])
+        
+            return delta_epsilon
             
-    def solve_local_ik(self, goal_pose):
+    def solve_local_ik(self, goal_pose,method):
+        if method !=1:
+            method=2
 
         goal = goal_pose
-        deltas = self.delta_x_and_e(goal, self.FK[5](self.jangles))
+        deltas = self.delta_x_and_e(goal, self.FK[5](self.jangles),method)
         count = 0
         ik_start = time.time()
         q_next = np.matrix([])
+        q_curr = [0,np.pi/2,-np.pi/4,0,.1,0]
+        q_init = self.jangles
         q_curr = self.jangles
         diff = 10
-        a1 = .25
-        b1 = .125
-        while diff > .0001:
+        a1 = .5
+        b1 = .5
+        while diff > .00001:
+            Jac = self.J[5](self.jangles)
             a = np.hstack((a1*(np.eye(3,3)), np.zeros((3,3))))
             b = np.hstack((np.zeros((3,3)), b1*(np.eye(3,3))))
             constants = np.vstack((a,b))
-            deltas = np.array(self.delta_x_and_e(goal, self.FK[5](q_curr)))
+            deltas = np.array(self.delta_x_and_e(goal, self.FK[5](q_curr),method))
             deltas = deltas.dot(constants)
             J_t = self.analytical_jacobian(q_curr)
-            rank = np.linalg.matrix_rank(np.linalg.pinv(J_t.T))
-            delta_q = (.1)*np.dot(J_t.T, deltas)
+            rank = np.linalg.matrix_rank(np.linalg.pinv(Jac))
+            if method == 1:
+                delta_q = (.01)*np.dot(np.linalg.pinv(Jac), deltas)
+            elif method == 2:
+                delta_q = (.01)*np.dot(J_t.T, deltas)
 
             if rank < 6:
                 print "INSUFFICIENT RANK! THIS IS A SINGULARITY"
-                print delta_q
-                #delta_q[5] = .01*delta_q[5]
-                #delta_q[3] = .01*delta_q[5]
 
             q_next = q_curr + delta_q
             
-        
             #Establish Joint Limits
             q0_max = np.pi
             q0_min = -np.pi
@@ -121,8 +141,8 @@ class HalKinematics(hal_arm_kinematics):
             q1_min = -np.pi
             q2_max = 2*np.pi
             q2_min = -2*np.pi
-            q3_max = np.pi
-            q3_min = -np.pi
+            q3_max = 2*np.pi
+            q3_min = -2*np.pi
             q4_max = np.pi
             q4_min = -np.pi
             q5_max = 2*np.pi
@@ -169,31 +189,31 @@ class HalKinematics(hal_arm_kinematics):
             elif q_next[5] > q5_max:
                 q_next[5] = q5_max
                 #q_next = [0,0,0,0,0,0]
-            
-            #print q_next
-            time.sleep(.001)
 
-            deltas = self.delta_x_and_e(goal,self.FK[5](q_next))
             diff = self.greatest_diff(q_next, q_curr)
-            #print deltas
-            #print self.FK[5](q_next)[:,3]
-            #print q_next
             self.publish_to_tf(q_next)
             q_curr = q_next
             count = count + 1
-            if count>5000:
+            if count>10000:
                 break
         ik_end = time.time()
         #print "Total solve time: ", ik_end - ik_start
         print "Iterations: ", count
-        print "Solution Pose: \n", self.FK[5](q_next)
-        #print "Goal Pose: \n", goal
-        #print "J_t\n",J_t.T
-        #print "Error Measure: \n", np.sum(self.FK[5](q_next)-goal)
-        #print '\n\n\n\ndifference in matrices\n',self.FK[5](q_next)-goal
-        #print "Joint angle solution: \n", q_next
+        print "Error Measure: \n", np.linalg.norm((self.FK[5](q_next)-goal))
+        error = np.linalg.norm((self.FK[5](q_next)-goal))
+        if method == 1 and error > .5:
+            q_next = q_init
+            method = 2
+            print "No Solution Found using method 1"
+            q_next = self.solve_local_ik(goal_pose,method)
+        elif method == 2 and error > .5:
+            q_next = q_init
+            print "No Solution Found using method 2"
+        else:
+            print "Solution Found"
+
         self.jangles = q_next
-        
+        self.publish_to_tf(q_next)
         return q_next
 
     def publish_to_tf(self,q):
@@ -251,8 +271,8 @@ if __name__=='__main__':
     np.set_printoptions(precision=4)
 
     hal = HalKinematics()
-    #hal.jangles = [0,np.pi/2,-np.pi/4,0,.1,np.pi]
-    hal.jangles = [0,0,0,0,0*np.pi/2,0*np.pi]
+    hal.jangles = [0,np.pi/2,-np.pi/4,0,.1,np.pi]
+    #hal.jangles = [0,0,0,0,0*np.pi/2,0*np.pi]
 
     goal = np.matrix([[0,-1,0,0],
                       [0,0,1,1.09],
