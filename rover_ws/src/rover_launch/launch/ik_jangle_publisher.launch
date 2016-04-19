@@ -1,0 +1,12 @@
+<launch>
+
+  <node pkg="hal_ik" type="hal_ik" name="hal_ik">
+  </node>
+  <node pkg="hal_ik" type="hal_visualizer.py" name="hal_visualizer">
+  </node>
+  <node pkg="hal_ik" type="teleop_controller.py" name="teleop_controller">
+  </node>
+  <node pkg="rviz" type="rviz" name="rviz">
+  </node>
+
+</launch>
