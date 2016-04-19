@@ -122,7 +122,7 @@ KDL::Frame forward_kinematics(KDL::JntArray jntAngles, KDL::Chain chain)
     return finalFrame;
 }
 
-rover_msgs::JointAngles build_ja_msg(KDL::JntArray q_ik)
+rover_msgs::JointAngles build_ja_msg(KDL::JntArray q_ik,int result)
 {
     rover_msgs::JointAngles msg;
     float q0 = q_ik(0)*180/M_PI;
@@ -137,6 +137,7 @@ rover_msgs::JointAngles build_ja_msg(KDL::JntArray q_ik)
     msg.q.push_back(round(q3*100)/100);
     msg.q.push_back(round(q4*100)/100);
     msg.q.push_back(round(q5*100)/100);
+    msg.solved = result;
 
     return msg;
 }
@@ -159,7 +160,7 @@ int inverse_kinematics(geometry_msgs::Point coord, geometry_msgs::Quaternion ori
     TRAC_IK::TRAC_IK ik(chain, q_min, q_max);
     result = ik.CartToJnt(q_init, desFrame, q_ik, bound);
 
-    rover_msgs::JointAngles msg = build_ja_msg(q_ik);
+    rover_msgs::JointAngles msg = build_ja_msg(q_ik,result);
     pub_jnts.publish(msg);
 
     KDL::Frame finalFrame = forward_kinematics(q_ik, chain);    
