@@ -50,6 +50,7 @@ find_package(catkin REQUIRED std_msgs message_generation)
    Pololu.msg
    All.msg
    Chutes.msg
+   JointAngles.msg
  )
 
 ## Generate services in the 'srv' folder
