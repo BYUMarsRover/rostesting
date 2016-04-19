@@ -23,10 +23,10 @@ include_directories(
 add_executable(hal_ik src/hal_ik.cpp)
 target_link_libraries(hal_ik ${catkin_LIBRARIES})
 
-add_executable(hal_visualizer src/hal_visualizer.py)
+#add_executable(hal_visualizer src/hal_visualizer.py)
 #target_link_libraries(hal_visualizer ${catkin_LIBRARIES})
 
-add_executable(teleop_controller src/teleop_controller.py)
+#add_executable(teleop_controller src/teleop_controller.py)
 #target_link_libraries(teleop_controller ${catkin_LIBRARIES})
 
 install(DIRECTORY launch/
