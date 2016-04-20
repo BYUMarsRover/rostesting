@@ -21,44 +21,7 @@ int nJoints;
 KDL::JntArray q_init, q_min, q_max;
 ros::Publisher pub_jnts, pub_gripper;
 
-
-
-namespace patch
-{
-    template < typename T > std::string to_string( const T& n )
-    {
-        std::ostringstream stm ;
-        stm << n ;
-        return stm.str() ;
-    }
-}
-
-float distance_off_target(KDL::Vector desPos, KDL::Vector actPos)
-{
-    float err_x = desPos.x() - actPos.x();
-    float err_y = desPos.y() - actPos.y();
-    float err_z = desPos.z() - actPos.z();
-    float err = sqrt(err_x*err_x + err_y*err_y + err_z*err_z);
-    
-    return err;
-}
-
-int print_output(int result, int nJoints, KDL::JntArray q_out, KDL::Frame desFrame, KDL::Frame actualFrame)
-{
-  if(result<0){std::cout << "No Solution Found" << std::endl;}
-  if(result>0){std::cout << "Solution Found" << std::endl;}
-  //std::cout << std::endl;
-  //std::cout << "Result: " << patch::to_string(result) << std::endl;
-  //std::cout << "PI: " << patch::to_string(M_PI) << std::endl;
-  //std::cout << "Desired Position: \n" << patch::to_string(desFrame) << std::endl;
-  //std::cout << "Actual Position:  \n" << patch::to_string(actualFrame) << std::endl;
-  //std::cout << "Error:            " << distance_off_target(desFrame.p, actualFrame.p);   
-  //std::cout << std::endl << std::endl;
-  //std::cout << "Success - "; // (acc = " << acc - 0.05 << ")" << std::endl;
-        
-  //std::cout << std::endl << std::endl;
-}
-
+// Build a simulated arm using DH parameters
 KDL::Chain build_arm()
 {
     KDL::Chain chain;
@@ -74,6 +37,7 @@ KDL::Chain build_arm()
     return chain;
 }
 
+// Establish initial joint angles from which to start finding suitable joint angles
 KDL::JntArray init_jnt_angles(int nJoints)
 {
     KDL::JntArray q_init(nJoints);
@@ -87,6 +51,7 @@ KDL::JntArray init_jnt_angles(int nJoints)
     return q_init;
 }
 
+// Establish minimum joint angles
 KDL::JntArray min_jnt_angles(int nJoints)
 {
     KDL::JntArray q_min(nJoints); 
@@ -100,6 +65,7 @@ KDL::JntArray min_jnt_angles(int nJoints)
     return q_min;
 }
 
+// Establish maximum joint angles
 KDL::JntArray max_jnt_angles(int nJoints)
 {
     KDL::JntArray q_max(nJoints); 
@@ -113,15 +79,7 @@ KDL::JntArray max_jnt_angles(int nJoints)
     return q_max;
 }
 
-KDL::Frame forward_kinematics(KDL::JntArray jntAngles, KDL::Chain chain)
-{
-    KDL::ChainFkSolverPos_recursive fk(chain);
-    KDL::Frame finalFrame;
-    fk.JntToCart(jntAngles, finalFrame);
-    
-    return finalFrame;
-}
-
+// Build a JointAngles message that can be published over ROS
 rover_msgs::JointAngles build_ja_msg(KDL::JntArray q_ik,int result)
 {
     rover_msgs::JointAngles msg;
@@ -142,6 +100,7 @@ rover_msgs::JointAngles build_ja_msg(KDL::JntArray q_ik,int result)
     return msg;
 }
 
+// Do IK and return a flag representing whether or not a solution was reached
 int inverse_kinematics(geometry_msgs::Point coord, geometry_msgs::Quaternion orient, KDL::Chain chain, int nJoints, KDL::JntArray q_init, KDL::JntArray q_min, KDL::JntArray q_max)
 {
     KDL::Frame desFrame;
@@ -162,20 +121,9 @@ int inverse_kinematics(geometry_msgs::Point coord, geometry_msgs::Quaternion ori
 
     rover_msgs::JointAngles msg = build_ja_msg(q_ik,result);
     pub_jnts.publish(msg);
-
-    KDL::Frame finalFrame = forward_kinematics(q_ik, chain);    
-        
-    print_output(result, nJoints, q_ik, desFrame, finalFrame);
 }
 
-//int open_gripper(int status)
-//{
-//    // 1 = open, 2 = closed
-//    low_level_control::gripper_status msg;
-//    msg.gripper_cmd.push_back(status);
-//    pub_gripper.publish(msg);
-//}
-
+// Update desired pose based on Interactive Marker
 void callback(const visualization_msgs::InteractiveMarkerFeedback& msg)
 {
     geometry_msgs::Point coord = msg.pose.position;
@@ -186,13 +134,8 @@ void callback(const visualization_msgs::InteractiveMarkerFeedback& msg)
     //else if (msg.menu_entry_id == 3){open_gripper(0);}
 }
 
+
 int main(int argc, char **argv)
-
-// Cortex Frame:
-// x - KL's right
-// y - KL's front
-// z - up
-
 {
     chain = build_arm();
     nJoints = chain.getNrOfJoints();

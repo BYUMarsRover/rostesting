@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 from HalKinematics import HalKinematics
-from geometry_msgs.msg import Pose
-from visualization_msgs.msg import InteractiveMarkerFeedback
 from rover_msgs.msg import JointAngles as j_a_msg
 import rospy
 import numpy as np
-import tf
+
+'''
+This program simply instantiates a HalKinematics object and uses it to publish
+the DH frames of Hal to tf so they can be viewed in Rviz. The joint angles are
+taken from the SetJointGoal topic.
+'''
 
 def ik_callback(msg):
     q = np.array(msg.q)
