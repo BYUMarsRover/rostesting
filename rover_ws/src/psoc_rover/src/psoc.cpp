@@ -52,7 +52,7 @@ void Psoc::receive(const uint8_t *bytes, ssize_t nbytes)
     	msg.q4 = (output[8] << 8 | output[7]);
     	msg.q5 = (output[10] << 8 | output[9]);
     	msg.q6 = (output[12] << 8 | output[11]);
-        // rover_msgs::SciFeedback msg;
+        //rover_msgs::SciFeedback msg;
         // msg.temp = (output[1] << 8 | output[2]);
         // msg.humidity = (output[3] << 8 | output[4]);
     	data_publisher_.publish(msg);

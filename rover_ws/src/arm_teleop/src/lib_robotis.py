@@ -235,7 +235,9 @@ class Robotis_Servo():
             return
         
         self.set_angvel(angvel)
-
+        #print('i am trying to move to this angle: {}'.format(ang))
+        #print('my max angle is: {}'.format(self.settings['max_ang']))
+        #print('my min angle is: {}'.format(self.settings['min_ang']))
         if self.settings['flipped']:
             ang = ang * -1.0
         enc_tics = int(round( ang / self.settings['rad_per_enc'] ))
@@ -251,6 +253,7 @@ class Robotis_Servo():
         '''
         # In some border cases, we can end up above/below the encoder limits.
         #   eg. int(round(math.radians( 180 ) / ( math.radians(360) / 0xFFF ))) + 0x7FF => -1
+        #print('i am trying to move to this encoder spot: {}'.format(n))
         n = min( max( n, 0 ), self.settings['max_encoder'] ) 
         hi,lo = n / 256, n % 256
         return self.write_address( 0x1e, [lo,hi] )
@@ -315,11 +318,14 @@ class Robotis_Servo():
         self.dyn.rel_mutex()
         
         if err != 0:
+            print('THIS IS THE ERR: {}'.format(err))
             self.process_err( err )
 
         return data
 
     def process_err( self, err ):
+        print('the current encoder value is: {}'.format(self.read_encoder()))
+        print('the current angle is: {}'.format(self.read_anlge()))
         raise RuntimeError('lib_robotis: An error occurred: %d\n' % err)
 
     def receive_reply(self):

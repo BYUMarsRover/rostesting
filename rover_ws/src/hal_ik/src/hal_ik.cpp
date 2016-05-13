@@ -129,7 +129,7 @@ void callback(const visualization_msgs::InteractiveMarkerFeedback& msg)
     geometry_msgs::Point coord = msg.pose.position;
     geometry_msgs::Quaternion orient = msg.pose.orientation;
 
-    if (msg.menu_entry_id == 1){inverse_kinematics(coord, orient, chain, nJoints, q_init, q_min, q_max);}
+    if (msg.menu_entry_id == 1 || msg.menu_entry_id == 0){inverse_kinematics(coord, orient, chain, nJoints, q_init, q_min, q_max);}
     //else if (msg.menu_entry_id == 2){open_gripper(1);}
     //else if (msg.menu_entry_id == 3){open_gripper(0);}
 }

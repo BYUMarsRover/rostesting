@@ -145,7 +145,7 @@ class XBOX():
 
 if __name__ == '__main__':
     rospy.init_node('xbox_ik_control', anonymous = True)
-    hz = 100
+    hz = 30
     rate = rospy.Rate(hz)
     xbox=XBOX()
 
