@@ -22,6 +22,8 @@ class XBOX():
         self.prev_y = 0
         self.case = 'Drive'
         self.slow_case = 'Fast'
+        self.cam1_sel = 0
+        self.cam2_sel = 0
 
         self.invkin.data.append(2046)
         self.invkin.data.append(400)
@@ -31,7 +33,7 @@ class XBOX():
         self.cmd.rw = 1500
         self.cmd.pan = 1500
         self.cmd.tilt = 1500
-        self.cmd.camnum = 1
+        self.cmd.camnum = 0
         self.cmd.q1 = 2046
         self.cmd.q2 = 400
         self.cmd.q3 = 3050#1695
@@ -141,34 +143,19 @@ class XBOX():
     def check_method(self):
         # Check to see whether driving or using arm and return case
         # [A, B, X, Y] = buttons[0, 1, 2, 3]
-        y = self.joy.buttons[3] # toggle between drive/chute modes
-        a = self.joy.buttons[0] # toggle between arm modes
-        
-        if a == 1 and y == 0: # arm
-            if self.case == 'Arm-xbox':
-                self.case = 'Arm-IK'
-            else:
-                self.case = 'Arm-xbox'
-            time.sleep(.25)
+        y = self.joy.buttons[3] # toggle between modes
 
-        elif a == 0 and y == 1: # drive/chute
+        if y == 1:
             if self.case == 'Drive':
+                self.case = 'Arm-IK'
+            elif self.case == 'Arm-IK':
+                self.case = 'Arm-xbox'
+            elif self.case == 'Arm-xbox':
                 self.case = 'Chutes'
             else:
                 self.case = 'Drive'
-            time.sleep(.25)
+            time.sleep(25)
 
-            '''
-            if y == 1 and self.case == 'Drive':
-                self.case = 'Arm-xbox'
-                time.sleep(.25)
-            elif y == 1 and self.case == 'Arm-xbox':
-                self.case = 'Chutes'
-                time.sleep(.25)
-            elif y == 1 and self.case == 'Chutes':
-                self.case = 'Drive'
-                time.sleep(.25)
-            '''
     def slow_check(self):
         x = self.joy.buttons[2]
         if x == 1 and self.case == 'Drive':
@@ -178,85 +165,35 @@ class XBOX():
             elif self.slow_case == 'Slow':
                 self.slow_case = 'Fast'
                 time.sleep(.25)
-    # def polCommand(self):
-    #     # Calculate how to command arm (position control)
-    #     # Joint 1
-    #     if self.joy.axes[0] > .5:
-    #         self.q_cmd.q1 = self.q_fb.q1+50.0
-    #         if self.q_cmd.q1 > 4092:
-    #             self.q_cmd.q1 = 4092
-    #     elif self.joy.axes[0] < -.5:
-    #         self.q_cmd.q1 = self.q_fb.q1-50.0
-    #         if self.q_cmd.q1 < 0:
-    #             self.q_cmd.q1 = 0
 
-    #     # Joint 2
-    #     if self.joy.axes[1] > .5:
-    #         self.q_cmd.q2 = self.q_fb.q2+50.0
-    #         if self.q_cmd.q2 > 4092:
-    #             self.q_cmd.q2 = 4092
-    #     elif self.joy.axes[1]<-.5:
-    #         self.q_cmd.q2 = self.q_fb.q2-50.0
-    #         if self.q_cmd.q2 < 0:
-    #             self.q_cmd.q2 = 0
+    def camera_select(self):
+        # a selects between cameras 0-2, b selects between cameras 3-5
+        # cam1_sel is lower nybble, cam2_sel is upper nybble
+        a = self.joy.buttons[0]
+        b = self.joy.buttons[1]
 
-    #     # Joint 3
-    #     if self.joy.axes[7] > .5:
-    #         self.q_cmd.q3 = self.q_fb.q3+50.0
-    #         if self.q_cmd.q3 > 4092:
-    #             self.q_cmd.q3 = 4092
-    #     elif self.joy.axes[7] < -.5:
-    #         self.q_cmd.q3 = self.q_fb.q3-50.0
-    #         if self.q_cmd.q3 < 0:
-    #             self.q_cmd.q3 = 0
-
-    #     # Joint 4
-    #     if self.joy.axes[6] > .5:
-    #         self.q_cmd.q4 = self.q_fb.q4+50.0
-    #         if self.q_cmd.q4 > 4092:
-    #             self.q_cmd.q4 = 4092
-    #     elif self.joy.axes[6]<-.5:
-    #         self.q_cmd.q4 = self.q_fb.q4-50.0
-    #         if self.q_cmd.q4 < 0:method
-    #             self.q_cmd.q4 = 0
-
-    #     # Joint 5
-    #     if self.joy.axes[4] > .5:
-    #         self.q_cmd.q5 = self.q_fb.q5+50.0
-    #         if self.q_cmd.q5 > 4092:
-    #             self.q_cmd.q5 = 4092
-    #     elif self.joy.axes[4]<-.5:
-    #         self.q_cmd.q5 = self.q_fb.q5-50.0
-    #         if self.q_cmd.q5 < 0:
-    #             self.q_cmd.q5 = 0
-
-    #     # Joint 6
-    #     if self.joy.axes[3] > .5:
-    #         self.q_cmd.q6 = self.q_fb.q6+50.0
-    #         if self.q_cmd.q6 > 4092:
-    #             self.q_cmd.q6 = 4092
-    #     elif self.joy.axes[3]<-.5:
-    #         self.q_cmd.q6 = self.q_fb.q6-50.0
-    #         if self.q_cmd.q6 < 0:
-    #             self.q_cmd.q6 = 0
-
-    #     # Gripper
-    #     if self.joy.buttons[5] > .5:
-    #         self.q_cmd.grip = self.q_fb.grip+50.0
-    #         if self.q_cmd.grip > 2000:
-    #             self.q_cmd.grip = 2000
-    #     elif self.joy.buttons[4] > .5:
-    #         self.q_cmd.grip = self.q_fb.grip-50.0
-    #         if self.q_cmd.grip < 1000:
-    #             self.q_cmd.grip = 1000
-
-    #     # Publish arm commands
-    #     self.pub1.publish(self.q_cmd)
+        if a == 1:
+            if cam1_sel == 2:
+                cam1_sel = 0
+            else:
+                cam1_sel = cam1_sel + 1
+            time.sleep(.25)
+        if b == 1:
+            if cam2_sel == 2:
+                cam2_sel = 0
+            else:
+                cam2_sel = cam2_sel + 1
+            time.sleep(.25)
+        # Update command
+        self.cmd.camnum = (cam1_sel & 0x0f) | ((cam2_sel & 0x0f) << 4)
 
     def driveCommand(self):
         # Check for slow/fast mode
         self.slow_check()
         
+        # Select between camera feeds with A & B on the xbox controller
+        self.camera_select()
+
         # Calculate drive speeds
         if self.slow_case == 'Fast':
             self.cmd.lw = self.joy.axes[1]*-500 + 1500
@@ -267,9 +204,10 @@ class XBOX():
         # Publish drive commands
         self.pub1.publish(self.cmd)
 
-
-
     def arm_IK(self):
+        # Select between camera feeds with A & B on the xbox controller
+        self.camera_select()
+
         # Calculate how to command arm (position control)
 
         self.cmd.q1=self.invkin.data[0]
@@ -327,12 +265,13 @@ class XBOX():
             if self.cmd.shovel > 2000:
                 self.cmd.shovel = 2000
 
-
-
         # Publish arm commands
         self.pub1.publish(self.cmd)
         
     def nofeedback(self):
+        # Select between camera feeds with A & B on the xbox controller
+        self.camera_select()
+
         # Calculate how to command arm (position control)
         # Joint 1
         
@@ -424,8 +363,6 @@ class XBOX():
             if self.cmd.shovel > 2000:
                 self.cmd.shovel = 2000
 
-
-
         # Publish arm commands
         self.pub1.publish(self.cmd)
     
@@ -435,9 +372,13 @@ class XBOX():
         temp[1] = self.joy.buttons[4]
         temp[2] = self.joy.buttons[2]
         temp[3] = self.joy.buttons[7]
-        temp[4] = 0#self.joy.buttons[5]
-        temp[5] = 0#self.joy.buttons[4]
-        temp[6] = 0
+        temp[4] = self.joy.buttons[5]
+        temp[5] = self.joy.buttons[6]
+        
+        if self.case == 'Chutes':
+            temp[6] = 1
+        else:
+            temp[6] = 0
         temp[7] = 0
 
         temp2 = str()

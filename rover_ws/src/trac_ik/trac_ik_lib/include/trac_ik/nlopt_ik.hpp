@@ -30,7 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef NLOPT_IK_HPP
 #define NLOPT_IK_HPP
- 
+
+
 #include <trac_ik/kdl_tl.hpp>
 #include <nlopt.hpp>
  
