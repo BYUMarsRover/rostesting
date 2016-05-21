@@ -29,6 +29,9 @@ class XBOX():
         self.invkin.data.append(400)
         self.invkin.data.append(3050)#1695)
         self.invkin.data.append(1920)
+        self.wristangle1 = 0.0
+        self.wristangle2 = 0.0
+
         self.cmd.lw = 1500
         self.cmd.rw = 1500
         self.cmd.pan = 1500
@@ -59,12 +62,9 @@ class XBOX():
         # self.q_cmd.grip = 1000
 
     # Publishers and Subscribers
-        #self.sub1 = rospy.Subscriber('pololu_feedback', Pololu, self.polCallback)
         self.sub2 = rospy.Subscriber('joy', Joy, self.joyCallback)
         self.sub3 = rospy.Subscriber('dynamixel_feedback', Float32MultiArray,self.dynCallback)
         self.sub4 = rospy.Subscriber('SetJointGoal', JointAngles, self.inversekin)
-        # self.pub1 = rospy.Publisher('/pololu_command', Pololu, queue_size = 10)
-        # self.pub2 = rospy.Publisher('/drive_command', Drive, queue_size = 10)
         self.pub1 = rospy.Publisher('/rover_command', All, queue_size = 10)
         self.pub3 = rospy.Publisher('/mode', String, queue_size = 10)
         self.pub4 = rospy.Publisher('/dynamixel_command',Float32MultiArray,queue_size = 1)
@@ -73,50 +73,13 @@ class XBOX():
     # Callbacks
     def inversekin(self,msg):
         
-        if msg.solved==1 and self.check==True:
-            self.invkin.data[0]=int(round(0+(-msg.q[0]*np.pi/180.0+3.0*np.pi/4.0)*(4092/(3*np.pi/2))))#505
-            self.invkin.data[1]=int(round(3128+(-msg.q[1]*np.pi/180)*(4092/(3*np.pi/4))))
-            self.invkin.data[2]=int(round(2027+(msg.q[2]*np.pi/180+3*np.pi/4)*(4092/(np.pi))))#-3420+(-msg.q[2]*np.pi/180+3*np.pi/4)*(4092/(np.pi))))
-            self.invkin.data[3]=int(round(882+(msg.q[3]*np.pi/180+15*np.pi/4)*(4092/(15*np.pi))))
-
-            #shoulder: 401; elbow: -2069
-
-            # make sure they are valid joint angles between [0, 4095]
-            # turret
-            if self.invkin.data[0] < 0:
-                self.invkin.data[0] = 0
-            elif self.invkin.data[0] > 4095:
-                self.invkin.data[0] = 4095
-            # shoulder
-            if self.invkin.data[1] < 0:
-                self.invkin.data[1] = 0
-            elif self.invkin.data[1] > 4095:
-                self.invkin.data[1] = 4095
-            # elbow
-            if self.invkin.data[2] < 0:
-                self.invkin.data[2] = 0
-            elif self.invkin.data[2] > 4095:
-                self.invkin.data[2] = 4095
-            # forearm
-            if self.invkin.data[3] < 0:
-                self.invkin.data[3] = 0
-            elif self.invkin.data[3] > 4095:
-                self.invkin.data[3] = 4095
-            wristangle1=msg.q[4]
-            wristangle2=msg.q[5]
-            if wristangle1>30:
-                wristangle1=30
-            elif wristangle1<-30:
-                wristangle1=-30
-            if wristangle2>30:
-                wristangle2=30
-            elif wristangle2<-30:
-                wristangle2=-30
-            self.dyn.data[0]=(wristangle1+30)/60
-            self.dyn.data[1]=(wristangle2+30)/60
-            # now publish the positions
-            self.pub5.publish(self.invkin)
-
+        if msg.solved == 1 and self.check == True:
+            self.invkin.data[0] = msg.q[0]
+            self.invkin.data[1] = msg.q[1]
+            self.invkin.data[2] = msg.q[2]
+            self.invkin.data[3] = msg.q[3]
+            self.wristangle1 = msg.q[4]
+            self.wristangle2 = msg.q[5]
 
     def polCallback(self,msg):
         self.q_fb.q1=msg.q1
@@ -129,7 +92,7 @@ class XBOX():
 
     def joyCallback(self,msg):
         self.joy=msg
-        if self.joy.buttons[9]==1:
+        if self.joy.buttons[9] == 1:
             if self.check==False:            
                 self.check=True
             else:
@@ -154,7 +117,7 @@ class XBOX():
                 self.case = 'Chutes'
             else:
                 self.case = 'Drive'
-            time.sleep(25)
+            time.sleep(.25)
 
     def slow_check(self):
         x = self.joy.buttons[2]
@@ -173,19 +136,19 @@ class XBOX():
         b = self.joy.buttons[1]
 
         if a == 1:
-            if cam1_sel == 2:
-                cam1_sel = 0
+            if self.cam1_sel == 2:
+                self.cam1_sel = 0
             else:
-                cam1_sel = cam1_sel + 1
+                self.cam1_sel = self.cam1_sel + 1
             time.sleep(.25)
         if b == 1:
-            if cam2_sel == 2:
-                cam2_sel = 0
+            if self.cam2_sel == 2:
+                self.cam2_sel = 0
             else:
-                cam2_sel = cam2_sel + 1
+                self.cam2_sel = self.cam2_sel + 1
             time.sleep(.25)
         # Update command
-        self.cmd.camnum = (cam1_sel & 0x0f) | ((cam2_sel & 0x0f) << 4)
+        self.cmd.camnum = (self.cam1_sel & 0x0f) | ((self.cam2_sel & 0x0f) << 4)
 
     def driveCommand(self):
         # Check for slow/fast mode
@@ -196,15 +159,61 @@ class XBOX():
 
         # Calculate drive speeds
         if self.slow_case == 'Fast':
-            self.cmd.lw = self.joy.axes[1]*-500 + 1500
+            self.cmd.lw = self.joy.axes[1]*500 + 1500
             self.cmd.rw = self.joy.axes[4]*-500 + 1500
         elif self.slow_case == 'Slow':
-            self.cmd.lw = self.joy.axes[1]*-250 + 1500
+            self.cmd.lw = self.joy.axes[1]*250 + 1500
             self.cmd.rw = self.joy.axes[4]*-250 + 1500
         # Publish drive commands
         self.pub1.publish(self.cmd)
 
     def arm_IK(self):
+
+
+        self.invkin.data[0]=int(round(0+(-self.invkin.data[0]*np.pi/180.0+3.0*np.pi/4.0)*(4092/(3*np.pi/2))))#505
+        self.invkin.data[1]=int(round(3128+(-self.invkin.data[1]*np.pi/180)*(4092/(3*np.pi/4))))
+        self.invkin.data[2]=int(round(2027+(self.invkin.data[2]*np.pi/180+3*np.pi/4)*(4092/(np.pi))))#-3420+(-msg.q[2]*np.pi/180+3*np.pi/4)*(4092/(np.pi))))
+        self.invkin.data[3]=int(round(882+(self.invkin.data[3]*np.pi/180+15*np.pi/4)*(4092/(15*np.pi))))
+
+        #shoulder: 401; elbow: -2069
+
+        # make sure they are valid joint angles between [0, 4095]
+        # turret
+        if self.invkin.data[0] < 0:
+            self.invkin.data[0] = 0
+        elif self.invkin.data[0] > 4095:
+            self.invkin.data[0] = 4095
+        # shoulder
+        if self.invkin.data[1] < 0:
+            self.invkin.data[1] = 0
+        elif self.invkin.data[1] > 4095:
+            self.invkin.data[1] = 4095
+        # elbow
+        if self.invkin.data[2] < 0:
+            self.invkin.data[2] = 0
+        elif self.invkin.data[2] > 4095:
+            self.invkin.data[2] = 4095
+        # forearm
+        if self.invkin.data[3] < 0:
+            self.invkin.data[3] = 0
+        elif self.invkin.data[3] > 4095:
+            self.invkin.data[3] = 4095
+        # wristangle1=msg.q[4]
+        # wristangle2=msg.q[5]
+        if self.wristangle1>30:
+            self.wristangle1=30
+        elif self.wristangle1<-30:
+            self.wristangle1=-30
+        if self.wristangle2>30:
+            self.wristangle2=30
+        elif self.wristangle2<-30:
+            self.wristangle2=-30
+        self.dyn.data[0]=(self.wristangle1+30)/60
+        self.dyn.data[1]=(self.wristangle2+30)/60
+        # now publish the positions
+        self.pub5.publish(self.invkin)
+
+
         # Select between camera feeds with A & B on the xbox controller
         self.camera_select()
 
