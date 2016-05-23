@@ -376,34 +376,32 @@ class XBOX():
         self.pub1.publish(self.cmd)
     
     def chutes(self):
-        temp = [[],[],[],[],[],[],[],[]]
-        temp[0] = self.joy.buttons[1] 
-        temp[1] = self.joy.buttons[4]
-        temp[2] = self.joy.buttons[2]
-        temp[3] = self.joy.buttons[7]
-        temp[4] = self.joy.buttons[5]
-        temp[5] = self.joy.buttons[6]
-        
-        if self.case == 'Chutes':
-            temp[6] = 1
-        else:
-            temp[6] = 0
-        temp[7] = 0
+    # temp = [[],[],[],[],[],[],[],[]]
+    #     temp[0] = self.joy.buttons[1] 
+    #     temp[1] = self.joy.buttons[4]
+    #     temp[2] = self.joy.buttons[2]
+    #     temp[3] = self.joy.buttons[7]
+    #     temp[4] = self.joy.buttons[5]
+    #     temp[5] = self.joy.buttons[6]
+    #     temp[6] = 1 # chute enable
+    #     temp[7] = 0 # box lid
 
-        temp2 = str()
-        for i in xrange(len(temp)):
-            temp2 = temp2+str(temp[i])
-        temp2 = int(temp2,2)
-        self.cmd.chutes = temp2
+        self.cmd.chutes = self.joy.buttons[1] | (self.joy.buttons[4] << 1) | (self.joy.buttons[2] << 2) | (self.joy.buttons[7] << 3) | (self.joy.buttons[5] << 4) | (self.joy.buttons[6] << 5) | (1 << 6) 
 
-        if self.joy.buttons[5] > .5:
-            self.cmd.shovel = self.cmd.shovel+50.0
-            if self.cmd.shovel > 2000:
-                self.cmd.shovel = 2000
-        elif self.joy.buttons[4] > .5:
-            self.cmd.shovel = self.cmd.shovel-50.0
-            if self.cmd.shovel < 1000:
-                self.cmd.shovel = 1000
+        # temp2 = str()
+        # for i in xrange(len(temp)):
+        #     temp2 = temp2+str(temp[i])
+        # temp2 = int(temp2,2)
+        # self.cmd.chutes = temp2
+
+        # if self.joy.buttons[5] > .5:
+        #     self.cmd.shovel = self.cmd.shovel+50.0
+        #     if self.cmd.shovel > 2000:
+        #         self.cmd.shovel = 2000
+        # elif self.joy.buttons[4] > .5:
+        #     self.cmd.shovel = self.cmd.shovel-50.0
+        #     if self.cmd.shovel < 1000:
+        #         self.cmd.shovel = 1000
 
         self.pub1.publish(self.cmd)
 
@@ -429,3 +427,4 @@ if __name__ == '__main__':
         xbox.pub3.publish(xbox.case)
 
         rate.sleep()
+
