@@ -51,4 +51,6 @@ add_executable(psoc_driver_node
 #                      include/conn_msgbuffer.h
                       )
 
+add_dependencies(psoc_driver_node rover_msgs_generate_messages_cpp)
+
 target_link_libraries(psoc_driver_node ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${catkin_LIBRARIES})

@@ -23,6 +23,7 @@ include_directories(
 add_executable(hal_ik src/hal_ik.cpp)
 target_link_libraries(hal_ik ${catkin_LIBRARIES})
 
+add_dependencies(hal_ik rover_msgs_generate_messages_cpp)
 #add_executable(hal_visualizer src/hal_visualizer.py)
 #target_link_libraries(hal_visualizer ${catkin_LIBRARIES})
 

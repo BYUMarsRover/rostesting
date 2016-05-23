@@ -131,9 +131,7 @@ add_executable(drive_teleop_node src/roverteleop_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(drive_teleop_node 
-  ${catkin_EXPORTED_TARGETS}
-)
+add_dependencies(drive_teleop_node rover_msgs_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(drive_teleop_node
