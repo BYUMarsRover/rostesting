@@ -77,37 +77,10 @@ def frameCallback( msg ):
     global counter, br, X, Y, Z, px, py,pz, RotateX, RotateY, RotateZ, rx,ry,rz, marker, int_marker, update, Scale
     time2 = rospy.Time.now()
     br.sendTransform( (0, 0, sin(counter/140.0)*2.0), (0, 0, 0, 1.0), time2, "base_link", "moving_frame" )
-    #counter += 1
     sub2 = rospy.Subscriber('joy', Joy, joyCallback)
     sub3 = rospy.Subscriber('mode', String, ModeCallback)
-    #print Z
-    #print Scale
     if update==True and (abs(X) > 0.5 or abs(Y) > 0.5 or abs(Z) > 0.5 or abs(RotateX) > 0.5 or abs(RotateY) > 0.5 or abs(RotateZ) > 0.5):
-        #interaction_mode=InteractiveMarkerControl.MOVE_3D
-        #int_marker = InteractiveMarker()
-        #int_marker.header.frame_id = "world"
-        '''
-        if X>.9:
-            X=1.0
-        elif X<-.9:
-            X=-1.0
-        else:
-            X=0.0
-    
-        if Y>.9:
-            Y=1.0
-        elif Y<-.9:
-            Y=-1.0
-        else:
-            Y=0.0
-    
-        if Z>.9:
-            Z=1.0
-        elif Z<-.9:
-            Z=-1.0
-        else:
-            Z=0.0
-        '''
+
         if RotateZ>.9:
             RotateZ=1.0
         elif RotateZ<-.9:
@@ -139,17 +112,14 @@ def frameCallback( msg ):
             Y=Y*.25
             X=X*.25
             RotateZ=RotateZ*.5
-        #print X,Y,Z
         px=px+X*.01
         py=py+Y*.01
         pz=pz+Z*.01
         rx=rx+RotateX*3.1415/180*2
         ry=ry+RotateY*3.1415/180*2
         rz=RotateZ*3.1415/180*2+rz
-        #print ry
         position = Point( px, py, pz)
         int_marker.pose.position = position
-        #int_marker.scale = .25
         quaternion= quaternion_from_euler(rx,ry,rz)#tf.transformations.quaternion_from_euler(rx,ry,rz)
         int_marker.pose.orientation.x = quaternion[0]
         int_marker.pose.orientation.y = quaternion[1]
@@ -171,46 +141,42 @@ def ModeCallback( msg ):
 
 
 def processFeedback( feedback ):
-    '''
-    s = "Feedback from marker '" + feedback.marker_name
-    s += "' / control '" + feedback.control_name + "'"
-
-    mp = ""
-    if feedback.mouse_point_valid:
-        mp = " at " + str(feedback.mouse_point.x)
-        mp += ", " + str(feedback.mouse_point.y)
-        mp += ", " + str(feedback.mouse_point.z)
-        mp += " in frame " + feedback.header.frame_id
-
-    if feedback.event_type == InteractiveMarkerFeedback.BUTTON_CLICK:
-        rospy.loginfo( s + ": button click" + mp + "." )
-    elif feedback.event_type == InteractiveMarkerFeedback.MENU_SELECT:
-        rospy.loginfo( s + ": menu item " + str(feedback.menu_entry_id) + " clicked" + mp + "." )
-    elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
-        rospy.loginfo( s + ": pose changed")
-    elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_DOWN:
-        rospy.loginfo( s + ": mouse down" + mp + "." )
-    elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_UP:
-        rospy.loginfo( s + ": mouse up" + mp + "." )
-    '''
     server.applyChanges()
     
+def findCurrent( msg ):
+    """// Build a simulated arm using DH parameters
+KDL::Chain build_arm()
+{
+    KDL::Chain chain;
 
+    // DH params: a, alpha, d, theta
+    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::RotZ),KDL::Frame::DH(4.25*.0254, M_PI/2.0, 3.5*.0254, M_PI/2.0)));  // Turret to Shoulder
+    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::RotZ),KDL::Frame::DH(15.0*.0254, 0.0, 0.0, 0.0)));  // Shoulder to Elbow
+    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::RotZ),KDL::Frame::DH(2.75*.0254, M_PI/2.0, 0.0, M_PI/2.0)));  // Elbow to Forearm
+    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::RotZ),KDL::Frame::DH(0.0, -M_PI/2.0, 14*.0254, 0.0)));  // Forearm to Wrist Flop
+    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::RotZ),KDL::Frame::DH(0.0, M_PI/2.0, 0.0, 0.0)));  // Wrist Flop to Wrist Twist
+    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::RotZ),KDL::Frame::DH(0.0, 0.0, 9.5*.0254, 0.0)));  // Wrist Twist to EE
+
+    return chain;
+}
+
+// Establish initial joint angles from which to start finding suitable joint angles
+KDL::JntArray init_jnt_angles(int nJoints)
+{
+    KDL::JntArray q_init(nJoints);
+    q_init(0) = 0;
+    q_init(1) = M_PI/2.0;
+    q_init(2) = -M_PI/2.0;  
+    q_init(3) = 0.0;  
+    q_init(4) = -M_PI/2.0;  
+    q_init(5) = 0;  """
 
 def makeBox( msg ):
     global rx,ry,rz, marker
-    #marker = Marker()
-    #marker.type = Marker.CUBE
     marker.scale.x = msg.scale * .125
     marker.scale.y = msg.scale * .25
     marker.scale.z = msg.scale * 0.375
-    #marker.color.r = 0.5
-    #marker.color.g = 0.5
-    #marker.color.b = 0.5
-    #marker.color.a = 1.0
-    #marker.pose.orientation.x = rx
-    #marker.pose.orientation.y = ry
-    #marker.pose.orientation.z = rz
+
 
     return marker
     
@@ -248,64 +214,6 @@ def joyCallback(msg):
     RotateX=msg.axes[3]
     RotateY=msg.axes[4]
     RotateZ=msg.axes[6]
-    #print msg
-    #print "in call back"
-    '''
-    if X>.9:
-        X=1.0
-    elif X<-.9:
-        X=-1.0
-    else:
-        X=0.0
-
-    if Y>.9:
-        Y=1.0
-    elif Y<-.9:
-        Y=-1.0
-    else:
-        Y=0.0
-
-    if Z>.9:
-        Z=1.0
-    elif Z<-.9:
-        Z=-1.0
-    else:
-        Z=0.0
-
-    if RotateZ>.9:
-        RotateZ=1.0
-    elif RotateZ<-.9:
-        RotateZ=-1.0
-    else:
-        RotateZ=0.0
-
-    if RotateX>.9:
-        RotateX=1.0
-    elif RotateX<-.9:
-        RotateX=-1.0
-    else:
-        RotateX=0.0
-
-    if RotateY>.9:
-        RotateY=1.0
-    elif RotateY<-.9:
-        RotateY=-1.0
-    else:
-        RotateY=0.0
-    if scale<-.9:
-        Z=Z*.05
-        Y=Y*.05
-        X=X*.05
-        RotateZ=RotateZ*.5
-    
-
-    if X < .1 and X > -.1:
-        X = 0
-    if Y < .1 and Y > -.1:
-        Y = 0
-    if Z < .1 and Z > -.1:
-        Z = 0
-    '''
 
 
 def makeMarker( fixed, interaction_mode, position, show_6dof = False):
@@ -319,74 +227,9 @@ def makeMarker( fixed, interaction_mode, position, show_6dof = False):
     
     # insert a box
     #makeBoxControl(int_marker)
-    '''
-    int_marker.controls[0].interaction_mode = interaction_mode
-    
-    if interaction_mode != InteractiveMarkerControl.NONE:
-        control_modes_dict = { 
-                          InteractiveMarkerControl.MOVE_3D : "MOVE_3D",
-                          InteractiveMarkerControl.ROTATE_3D : "ROTATE_3D",
-                          InteractiveMarkerControl.MOVE_ROTATE_3D : "MOVE_ROTATE_3D" }
-    '''
-    print "does this repeat?"
+
     if show_6dof: 
-        '''
-        control = InteractiveMarkerControl()
-        control.orientation.w = 1
-        control.orientation.x = 1
-        control.orientation.y = 0
-        control.orientation.z = 0
-        control.name = "rotate_x"
-        control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
-        if fixed:
-            control.orientation_mode = InteractiveMarkerControl.FIXED
-        int_marker.controls.append(control)
 
-        control = InteractiveMarkerControl()
-        control.orientation.w = 1
-        control.orientation.x = 1
-        control.orientation.y = 0
-        control.orientation.z = 0
-        control.name = "move_x"
-
-        control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
-        if fixed:
-            control.orientation_mode = InteractiveMarkerControl.FIXED
-        int_marker.controls.append(control)
-
-        control = InteractiveMarkerControl()
-        control.orientation.w = 1
-        control.orientation.x = 0
-        control.orientation.y = 1
-        control.orientation.z = 0
-        control.name = "rotate_z"
-        control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
-        if fixed:
-            control.orientation_mode = InteractiveMarkerControl.FIXED
-        int_marker.controls.append(control)
-
-        control = InteractiveMarkerControl()
-        control.orientation.w = 1
-        control.orientation.x = 0
-        control.orientation.y = 1
-        control.orientation.z = 0
-        control.name = "move_z"
-        control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
-        if fixed:
-            control.orientation_mode = InteractiveMarkerControl.FIXED
-        int_marker.controls.append(control)
-
-        control = InteractiveMarkerControl()
-        control.orientation.w = 1
-        control.orientation.x = 0
-        control.orientation.y = 0
-        control.orientation.z = 1
-        control.name = "rotate_y"
-        control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
-        if fixed:
-            control.orientation_mode = InteractiveMarkerControl.FIXED
-        int_marker.controls.append(control)
-        '''
         control = InteractiveMarkerControl()
         #print control
         control.orientation.w = 1
@@ -410,7 +253,7 @@ if __name__=="__main__":
     br = TransformBroadcaster()
     
     # create a timer to update the published transforms
-    rospy.Timer(rospy.Duration(0.05), frameCallback)
+    rospy.Timer(rospy.Duration(0.01), frameCallback)
 
     server = InteractiveMarkerServer("hal_teleop")
 

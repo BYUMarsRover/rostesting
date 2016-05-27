@@ -53,6 +53,12 @@ double degrees(double radians){ return 180.0*radians/M_PI;  }
 
 void NavEstimator::gpsCallback(const sensor_msgs::NavSatFix& msg)
 {
+        // reset for non-Kalman filter publishing
+        base_latitude_ = msg.latitude;
+        base_longitude_ = msg.longitude;
+        base_altitude_ = msg.altitude;
+
+
     if(!gps_initialized_ && !(msg.latitude != msg.latitude))
     {
         base_latitude_ = msg.latitude;
@@ -67,6 +73,11 @@ void NavEstimator::gpsCallback(const sensor_msgs::NavSatFix& msg)
         input.gps_n = EARTH_RADIUS * radians(msg.latitude - base_latitude_);
         input.gps_e = EARTH_RADIUS * cos(radians(base_latitude_)) * radians(msg.longitude - base_longitude_);
         input.gps_h = msg.altitude - base_altitude_;
+
+        // reset for non-Kalman filter publishing
+        base_latitude_ = msg.latitude;
+        base_longitude_ = msg.longitude;
+        base_altitude_ = msg.altitude;
 
         if(!(input.gps_n != input.gps_n))
         {
@@ -198,7 +209,7 @@ void NavEstimator::update()
         L_p = (P_p*C_p) * denom.inverse();
         P_p = (I_p - L_p*C_p.transpose())*P_p;
         xhat_p = xhat_p + L_p*(input.gps_n - h_p);
-
+        
         // gps East position
         h_p = xhat_p(1);
         C_p = Eigen::VectorXf::Zero(7);
