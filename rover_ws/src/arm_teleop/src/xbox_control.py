@@ -24,10 +24,10 @@ class XBOX():
         self.cam1_sel = 0
         self.cam2_sel = 0
 
-        self.invkin.data.append(1859)#2048)#2046)
-        self.invkin.data.append(968)#2048)#400)
-        self.invkin.data.append(2523)#2048)#3050)#1695)
-        self.invkin.data.append(1968)#2048)#1920)
+        self.invkin.data.append(0)#2048)#2046)
+        self.invkin.data.append(90)#2048)#400)
+        self.invkin.data.append(-90)#2048)#3050)#1695)
+        self.invkin.data.append(0)#2048)#1920)
         self.wristangle1 = 0.0
         self.wristangle2 = 0.0
 
@@ -142,6 +142,39 @@ class XBOX():
         # Update command
         self.cmd.camnum = (self.cam1_sel & 0x0f) | ((self.cam2_sel & 0x0f) << 4)
 
+    def cam_pan_tilt(self):
+        x = self.joy.buttons[2]
+        back = self.joy.buttons[6]
+        start = self.joy.buttons[7]
+        push_right = self.joy.buttons[10]
+        push_left = self.joy.buttons[9]
+
+        if x == 1:
+            self.cmd.pan = 1500
+            self.cmd.tilt = 1500
+            time.sleep(.05)
+        if start == 1:
+            self.cmd.tilt = self.cmd.tilt + 10.0
+            time.sleep(.05)
+        if back == 1:
+            self.cmd.tilt = self.cmd.tilt - 10.0
+            time.sleep(.05)
+        if push_right == 1:
+            self.cmd.pan = self.cmd.pan + 10.0
+            time.sleep(.05)
+        if push_left == 1:
+            self.cmd.pan = self.cmd.pan - 10.0
+            time.sleep(.05)
+        # bounds check
+        if self.cmd.tilt > 2000:
+            self.cmd.tilt = 2000
+        if self.cmd.tilt < 1000:
+            self.cmd.tilt = 1000
+        if self.cmd.pan > 2000:
+            self.cmd.pan = 2000
+        if self.cmd.pan < 1000:
+            self.cmd.pan = 1000
+
     def driveCommand(self):
         # Check for slow/fast mode
         self.slow_check()
@@ -158,25 +191,8 @@ class XBOX():
             self.cmd.rw = self.joy.axes[4]*-250 + 1500
 
         # Pan and Tilt
-        x = self.joy.buttons[2]
-        back = self.joy.buttons[6]
-        start = self.joy.buttons[7]
-        push_right = self.joy.buttons[10]
-        push_left = self.joy.buttons[9]
+        self.cam_pan_tilt()
         
-        if x == 1:
-            self.cmd.pan = 1500
-            self.cmd.tilt = 1500
-        if start == 1:
-            self.tilt = self.tilt + 50.0
-        if back == 1:
-            self.tilt = self.tilt - 50.0
-        if push_right == 1:
-            self.pan = self.pan + 50.0
-        if push_left == 1:
-            self.pan = self.pan - 50.0    
-            
-            
         # Publish drive commands
         self.pub1.publish(self.cmd)
 
@@ -240,24 +256,7 @@ class XBOX():
         self.camera_select()
         
         # Pan and Tilt
-        x = self.joy.buttons[2]
-        back = self.joy.buttons[6]
-        start = self.joy.buttons[7]
-        push_right = self.joy.buttons[10]
-        push_left = self.joy.buttons[9]
-        
-        if x == 1:
-            self.cmd.pan = 1500
-            self.cmd.tilt = 1500
-        if start == 1:
-            self.tilt = self.tilt + 50.0
-        if back == 1:
-            self.tilt = self.tilt - 50.0
-        if push_right == 1:
-            self.pan = self.pan + 50.0
-        if push_left == 1:
-            self.pan = self.pan - 50.0    
-
+        cam_pan_tilt(self)
 
         # Calculate how to command arm (position control)
 
@@ -326,35 +325,19 @@ class XBOX():
         self.camera_select()
 
         # Pan and Tilt
-        x = self.joy.buttons[2]
-        back = self.joy.buttons[6]
-        start = self.joy.buttons[7]
-        push_right = self.joy.buttons[10]
-        push_left = self.joy.buttons[9]
-        
-        if x == 1:
-            self.cmd.pan = 1500
-            self.cmd.tilt = 1500
-        if start == 1:
-            self.tilt = self.tilt + 50.0
-        if back == 1:
-            self.tilt = self.tilt - 50.0
-        if push_right == 1:
-            self.pan = self.pan + 50.0
-        if push_left == 1:
-            self.pan = self.pan - 50.0    
+        self.cam_pan_tilt()
 
         # Calculate how to command arm (position control)
         # Joint 1
         
         if self.joy.axes[0] < -.5:
-            self.cmd.q1 = self.cmd.q1-3.0
-            if self.cmd.q1 > 4092:
-                self.cmd.q1 = 4092
-        elif self.joy.axes[0] > .5:
-            self.cmd.q1 = self.cmd.q1+3.0
+            self.cmd.q1 = self.cmd.q1-3
             if self.cmd.q1 < 0:
-                self.cmd.q1 = 0
+                self.cmd.q1 = int(round(0))
+        elif self.joy.axes[0] > .5:
+            self.cmd.q1 = self.cmd.q1+3
+            if self.cmd.q1 > 4092:
+                self.cmd.q1 = int(round(4092))
 
         # Joint 2
         if self.joy.axes[1] > .5:
@@ -387,10 +370,10 @@ class XBOX():
                 self.cmd.q4 = 0
 
         # Send moved angles to IK
-        self.invkin.data[0] = -180/np.pi*((self.cmd.q1-3905)*3*np.pi/2/4092-3*np.pi/4)
-        self.invkin.data[1] = -180/np.pi*((self.cmd.q2-3696)*3*np.pi/4/4092)
-        self.invkin.data[2] = 180/np.pi*((self.cmd.q3-1500)*np.pi/4092-3*np.pi/4)
-        self.invkin.data[3] = 180/np.pi((self.cmd.q4-945)*15*np.pi/4092-15*np.pi/4)
+        #self.invkin.data[0] = -180/np.pi*((self.cmd.q1-3905)*3*np.pi/2/4092-3*np.pi/4)
+        #self.invkin.data[1] = -180/np.pi*((self.cmd.q2-3696)*3*np.pi/4/4092)
+        #self.invkin.data[2] = 180/np.pi*((self.cmd.q3-1500)*np.pi/4092-3*np.pi/4)
+        #self.invkin.data[3] = 180/np.pi((self.cmd.q4-945)*15*np.pi/4092-15*np.pi/4)
 
         # Joint 5
         if self.joy.axes[4] > .5:
@@ -430,9 +413,9 @@ class XBOX():
         rb = self.joy.buttons[5]
         lb = self.joy.buttons[4]
         if rb == 1:
-            self.cmd.grip = 1
-        elif lb == 1:
             self.cmd.grip = 2
+        elif lb == 1:
+            self.cmd.grip = 1
         else:
             self.cmd.grip = 0
 

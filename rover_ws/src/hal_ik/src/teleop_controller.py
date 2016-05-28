@@ -190,7 +190,7 @@ def makeMarker( fixed, interaction_mode, position, show_6dof = False):
         int_marker.controls.append(control)
     server.insert(int_marker, processFeedback)
     menu_handler.apply( server, int_marker.name )
-    
+
 if __name__=="__main__":
     rospy.init_node("hal_teleop",anonymous=True)
     br = TransformBroadcaster()
@@ -203,7 +203,7 @@ if __name__=="__main__":
     menu_handler.insert( "Send Pose", callback=processFeedback )
     menu_handler.insert( "Open Gripper", callback=processFeedback )
     menu_handler.insert( "Close Gripper", callback=processFeedback )
-        
+
     position = Point( 0, 1.09, 0)
     makeMarker( True, InteractiveMarkerControl.MOVE_3D, position, True )
     print "Made the marker"
