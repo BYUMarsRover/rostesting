@@ -41,7 +41,7 @@ from geometry_msgs.msg import Point
 from geometry_msgs.msg import Pose
 from tf.broadcaster import TransformBroadcaster
 from tf.transformations import quaternion_from_euler, euler_from_quaternion, euler_from_matrix
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32MultiArray
 
 from random import random
 from math import sin, exp, pi, cos
@@ -75,6 +75,8 @@ int_marker = InteractiveMarker()
 int_marker.header.frame_id = "world"
 int_marker.scale = .25
 int_marker.name = "hal_ee"
+T5=0.0
+T6=0.0
 
 def frameCallback( msg ):
     global counter, br, X, Y, Z, px, py,pz, RotateX, RotateY, RotateZ, rx,ry,rz, marker, int_marker, update, Scale, sub4
@@ -83,9 +85,10 @@ def frameCallback( msg ):
     sub2 = rospy.Subscriber('joy', Joy, joyCallback)
     sub3 = rospy.Subscriber('mode', String, ModeCallback)
     if update==False:
+        sub1 = rospy.Subscriber('dynamixel_command', Float32MultiArray, Dyn_command)
         sub4 = rospy.Subscriber('rover_command', All, findCurrent, queue_size=1)
         position = Point( px, py, pz)
-        int_marker.pose.position = position
+        int_marker.pose.position = position       
         quaternion= quaternion_from_euler(rx,ry,rz)#tf.transformations.quaternion_from_euler(rx,ry,rz)
         #print quaternion
         #print pz
@@ -93,6 +96,7 @@ def frameCallback( msg ):
         int_marker.pose.orientation.y = quaternion[1]
         int_marker.pose.orientation.z = quaternion[2]
         int_marker.pose.orientation.w = quaternion[3]
+
         #int_marker.name = "hal_ee" 
         makeBoxControl(int_marker)
 
@@ -166,26 +170,38 @@ def ModeCallback( msg ):
 
 def processFeedback( feedback ):
     server.applyChanges()
+def Dyn_command(msg):
+    global T5, T6
+    T5=msg.data[0]#+pi/2+pi/2
+    T6=msg.data[1]
 
 def findCurrent( msg ):
         #Calculate current position
         #Rotational Matrix 1
-    global update, px, py, pz, rx, ry, rz, sub4
+    global update, px, py, pz, rx, ry, rz, sub4,T5,T6
     sub4.unregister()
     if update==False:
-        T1 = pi/2-((msg.q1+187)*3.0*np.pi/2/4092-3*np.pi/4)#*180/np.pi
-        T2 = -((msg.q2-3696)*3.0*np.pi/4/4092)#*180/np.pi
-        T3 = pi/2+((msg.q3-1500)*np.pi/4092-3*np.pi/4)#*180/np.pi
-        T4 = ((msg.q4-945)*15*np.pi/4092-15*np.pi/4)#*180/np.pi
-        #print "T1"
-        #print T1, T2, T3, T4
+        '''
+        T1 = pi/2+((msg.q1+196)*(3.0*np.pi/2.0)/4092.0-(3*np.pi)/4.0)#*180/np.pi
+        T2 = -pi/2-((msg.q2-3696)*(3.0*np.pi/4)/4092)#*180/np.pi#-pi/2
+        #print T2*180/pi
+        T3 = pi/2-((msg.q3+2224)*np.pi/4092-3*np.pi/4)#*180/np.pi
+        T4 = pi+((msg.q4-945)*15*np.pi/4092-15*np.pi/4)#*180/np.pi #pi/2-pi/2+
+        '''
+        T1 = ((msg.q1+196)*(3.0*np.pi/2.0)/4092.0-(3*np.pi)/4.0)#*180/np.pi
+        T2 = -((msg.q2-3696)*(3.0*np.pi/4)/4092)#*180/np.pi#-pi/2
+        #print T2*180/pi
+        T3 = -((msg.q3+2224)*np.pi/4092-3*np.pi/4)#*180/np.pi
+        T4 = ((msg.q4-945)*15*np.pi/4092-15*np.pi/4)#*180/np.pi #pi/2-pi/2+
+        print "T4"
+        print T1*180/pi, T2*180/pi, T3*180/pi, T4*180/pi
         #print pz
         #T1=msg.q1
         #T2=msg.q2
         #T3=msg.q3
         #T4=msg.q4
-        T5=0
-        T6=0
+        #Angle=T5+pi/2
+        #T6=0
         #print cos(T1)
         #print update
         #RM1=np.matrix([[cos(T1),0,sin(T1),0],#0*4.25*.0254*cos(T1)],
@@ -200,18 +216,18 @@ def findCurrent( msg ):
         #    [sin(T3),0,-cos(T3),2.75*.0254*sin(T3)],
         #    [0,1,0,0*.0254],
         #    [0,0,0,1]])
-        RM4=np.matrix([[cos(T4),0,-sin(T4),0],
-            [sin(T4),0,cos(T4),0],
-            [0,-1,0,14*.0254],
-            [0,0,0,1]])
-        RM5=np.matrix([[cos(T5),0,sin(T5),0],
-            [sin(T5),0,-cos(T5),0],
-            [0,1,0,0*.0254],
-            [0,0,0,1]])
-        RM6=np.matrix([[cos(T6),-sin(T6),0,0],
-            [sin(T6),cos(T6),0,0],
-            [0,0,1,9.5*.0254],
-            [0,0,0,1]])
+        #RM4=np.matrix([[cos(T4),0,-sin(T4),0],
+        #    [sin(T4),0,cos(T4),0],
+        #    [0,-1,0,14*.0254],
+        #    [0,0,0,1]])
+        #RM5=np.matrix([[cos(T5),0,sin(T5),0],
+        #    [sin(T5),0,-cos(T5),0],
+        #    [0,1,0,0*.0254],
+        #    [0,0,0,1]])
+        #RM6=np.matrix([[cos(T6),-sin(T6),0,0],
+        #    [sin(T6),cos(T6),0,0],
+        #    [0,0,1,9.5*.0254],
+        #    [0,0,0,1]])
         RM0=np.matrix([[1,0,0,0],
             [0,1,0,0],
             [0,0,1,0],
@@ -232,15 +248,45 @@ def findCurrent( msg ):
                         [0,1,0,0],
                         [-sin(T3),0,cos(T3),2.75*.0254*cos(T3)],#15*.0254*sin(T2)],
                         [0,0,0,1]])
+        Test4=np.matrix([[1,0,0,14*.0254],
+                        [0,cos(T4),-sin(T4),0],
+                        [0,sin(T4),cos(T4),0],
+                        [0,0,0,1]])
+        #Test4b=np.matrix([[cos(T4),-sin(T4),0,14*.0254],
+        #                 [sin(T4),cos(T4),0,0],
+        #                 [0,0,1,0],
+        #                 [0,0,0,1]])
+        #Test4c=np.matrix([[cos(T4),0,sin(T4),14*.0254],
+        #                 [0,1,0,0],
+        #                 [-sin(T4),0,cos(T4),0],
+        #                 [0,0,0,1]])
+        Test5=np.matrix([[cos(T5),0,sin(T5),0],
+                        [0,1,0,0],
+                        [-sin(T5),0,cos(T5),0],
+                        [0,0,0,1]])
+        Test6=np.matrix([[1,0,0,0*12.5*.0254],
+                        [0,cos(T6),-sin(T6),0*12.5*.0254],
+                        [0,sin(T6),cos(T6),9.5*.0254],
+                        [0,0,0,1]])
+        Test6b=np.matrix([[cos(T6),-sin(T6),0,0],
+                         [sin(T6),cos(T6),0,0],
+                         [0,0,1,9.5*.0254],
+                         [0,0,0,1]])
         #Test1=np.matrix([1,2])*np.matrix([[1],[1]])
-        Test3b=np.matrix([[1],[1],[1],[1]])
+        #Test3b=np.matrix([[1],[1],[1],[1]])
 #        Final=RM0*RM1*RM2*RM3*RM4*RM5*RM6
         #Final=RM6*RM5*RM4*RM3*RM2*RM1*RM0
-        Final=RM0*Test1*Test2*Test3#*Test2b
+        Final=RM0*Test1*Test2*Test3*Test4*Test5*Test6b#*Test2b
         px=Final[0,3]
         py=Final[1,3]
         pz=Final[2,3]
-        #rx,ry,rz= euler_from_matrix(Final,'rxyz')
+        Final2=Final[0:3,0:3]
+        #print Final2
+        rx,ry,rz= euler_from_matrix(Final2)#,'rxyz')
+        #rz=rz+pi/2 #rotated about red
+        #rx=rx+pi/2
+        #ry=ry+pi/2 #rotated about blue
+        #rx
         #time.sleep(.5)
         #Final2=euler_from_quaternion(Final)
         #print Final
@@ -353,7 +399,7 @@ if __name__=="__main__":
     br = TransformBroadcaster()
 
     # create a timer to update the published transforms
-    rospy.Timer(rospy.Duration(0.01), frameCallback)
+    rospy.Timer(rospy.Duration(0.05), frameCallback)
 
     server = InteractiveMarkerServer("hal_teleop")
 
