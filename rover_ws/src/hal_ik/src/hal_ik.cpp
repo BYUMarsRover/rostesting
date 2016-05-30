@@ -89,6 +89,7 @@ rover_msgs::JointAngles build_ja_msg(KDL::JntArray q_ik,int result)
     float q3 = q_ik(3)*180/M_PI;
     float q4 = q_ik(4)*180/M_PI;
     float q5 = q_ik(5)*180/M_PI;
+    q_init = q_ik;
     msg.q.push_back(round(q0*100)/100);
     msg.q.push_back(round(q1*100)/100);
     msg.q.push_back(round(q2*100)/100);
@@ -118,7 +119,6 @@ int inverse_kinematics(geometry_msgs::Point coord, geometry_msgs::Quaternion ori
     KDL::Twist bound(vel, rot);
     TRAC_IK::TRAC_IK ik(chain, q_min, q_max);
     result = ik.CartToJnt(q_init, desFrame, q_ik, bound);
-
     rover_msgs::JointAngles msg = build_ja_msg(q_ik,result);
     pub_jnts.publish(msg);
 }

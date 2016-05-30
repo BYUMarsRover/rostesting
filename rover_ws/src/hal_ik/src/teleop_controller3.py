@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 import rospy
 import copy
 import numpy as np
+import tf
 from rover_msgs.msg import All
 from sensor_msgs.msg import Joy #Edit by FF
 import time #edited by FF
@@ -64,6 +65,7 @@ pz=0
 rx=0
 ry=0
 rz=0
+Ree = np.eye(4)
 Scale = 0
 marker = Marker()
 marker.type = Marker.CUBE
@@ -78,13 +80,12 @@ int_marker.name = "hal_ee"
 T5=0.0
 T6=0.0
 
-def frameCallback( msg ):
-    global counter, br, X, Y, Z, px, py,pz, RotateX, RotateY, RotateZ, rx,ry,rz, marker, int_marker, update, Scale, sub4
+def frameCallback():
+    global counter, br, X, Y, Z, px, py,pz, RotateX, RotateY, RotateZ, rx,ry,rz, marker, int_marker, update, Scale, sub4, Ree
     time2 = rospy.Time.now()
     br.sendTransform( (0, 0, sin(counter/140.0)*2.0), (0, 0, 0, 1.0), time2, "base_link", "moving_frame" )
-    sub2 = rospy.Subscriber('joy', Joy, joyCallback)
-    sub3 = rospy.Subscriber('mode', String, ModeCallback)
-    print update
+
+    #print update
     if update==False:
         sub1 = rospy.Subscriber('dynamixel_command', Float32MultiArray, Dyn_command)
         sub4 = rospy.Subscriber('rover_command', All, findCurrent, queue_size=1)
@@ -104,28 +105,29 @@ def frameCallback( msg ):
         server.insert(int_marker, processFeedback)
         menu_handler.apply( server, int_marker.name )
     #sub4 = rospy.Subscriber('rover_command', All, findCurrent)
-    if (abs(X) > 0.5 or abs(Y) > 0.5 or abs(Z) > 0.5 or abs(RotateX) > 0.5 or abs(RotateY) > 0.5 or abs(RotateZ) > 0.5) and update==True:
+    #if (abs(X) > 0.5 or abs(Y) > 0.5 or abs(Z) > 0.5 or abs(RotateX) > 0.5 or abs(RotateY) > 0.5 or abs(RotateZ) > 0.5) and update==True:
+    if update == True:
 
         if RotateZ>.9:
             RotateZ=1.0
         elif RotateZ<-.9:
             RotateZ=-1.0
         else:
-            RotateZ=0.0
+            RotateZ = 0
 
         if RotateX>.9:
             RotateX=1.0
         elif RotateX<-.9:
             RotateX=-1.0
         else:
-            RotateX=0.0
+            RotateX = 0
 
         if RotateY>.9:
             RotateY=1.0
         elif RotateY<-.9:
             RotateY=-1.0
         else:
-            RotateY=0.0
+            RotateY = 0
         if X < .1 and X > -.1:
             X = 0
         if Y < .1 and Y > -.1:
@@ -136,7 +138,9 @@ def frameCallback( msg ):
             Z=Z*.25
             Y=Y*.25
             X=X*.25
-            RotateZ=RotateZ*.5
+        RotateX1=RotateX*3*pi/180
+        RotateY1=RotateY*3*pi/180
+        RotateZ1=RotateZ*3*pi/180
         px=px+X*.01
         py=py+Y*.01
         pz=pz+Z*.01
@@ -145,9 +149,22 @@ def frameCallback( msg ):
         rz=RotateZ*3.1415/180*2+rz
         position = Point( px, py, pz)
         int_marker.pose.position = position
-        quaternion= quaternion_from_euler(rx,ry,rz)#tf.transformations.quaternion_from_euler(rx,ry,rz)
-        #print quaternion
-        #print pz
+        rotx = np.matrix([[1,0,0,0],
+			     [0,cos(RotateX1),-sin(RotateX1),0],
+			     [0,sin(RotateX1),cos(RotateX1),0],
+			     [0,0,0,1]])
+        roty = np.matrix([[cos(RotateY1),0,sin(RotateY1),0],
+			     [0,1,0,0],
+			     [-sin(RotateY1),0,cos(RotateY1),0],
+			     [0,0,0,1]])
+        rotz = np.matrix([[cos(RotateZ1),-sin(RotateZ1),0,0],
+			     [sin(RotateZ1),cos(RotateZ1),0,0],
+			     [0,0,1,0],
+			     [0,0,0,1]])
+        Ree = Ree*rotx*roty*rotz
+            #quaternion= quaternion_from_euler(rx,ry,rz, 'rxyz') #tf.transformations.quaternion_from_euler(rx,ry,rz)
+            #print quaternion
+        quaternion = tf.transformations.quaternion_from_matrix(Ree)
         int_marker.pose.orientation.x = quaternion[0]
         int_marker.pose.orientation.y = quaternion[1]
         int_marker.pose.orientation.z = quaternion[2]
@@ -179,7 +196,7 @@ def Dyn_command(msg):
 def findCurrent( msg ):
         #Calculate current position
         #Rotational Matrix 1
-    global update, px, py, pz, rx, ry, rz, sub4,T5,T6
+    global update, px, py, pz, rx, ry, rz, sub4,T5,T6, Ree
     sub4.unregister()
     if update==False:
         '''
@@ -322,13 +339,14 @@ def findCurrent( msg ):
                         [0,0,0,1]])
         Test6=Test6a*Test6b*Testrz*Testrx
         #MULTIPLY JOINT TOGETHER#
-        Final=RM0*Test1*Test2*Test3*Test4*Test5*Test6#*Test2b
+        Final=Test1*Test2*Test3*Test4*Test5*Test6#*Test2b
         px=Final[0,3]
         py=Final[1,3]
         pz=Final[2,3]
         Final2=Final[0:3,0:3]
         #print Final2
         rx,ry,rz= euler_from_matrix(Final2)#,'rxyz')
+	Ree[0:3,0:3] = Final2
         #rz=rz+pi/2 #rotated about red
         #rx=rx+pi/2
         #ry=ry+pi/2 #rotated about blue
@@ -337,33 +355,6 @@ def findCurrent( msg ):
         #Final2=euler_from_quaternion(Final)
         #print Final
         
-    """// Build a simulated arm using DH parameters
-KDL::Chain build_arm()
-{
-    KDL::Chain chain;
-
-    // DH params: a, alpha, d, theta
-    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::RotZ),KDL::Frame::DH(4.25*.0254, M_PI/2.0, 3.5*.0254, M_PI/2.0)));  // Turret to Shoulder
-    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::RotZ),KDL::Frame::DH(15.0*.0254, 0.0, 0.0, 0.0)));  // Shoulder to Elbow
-    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::RotZ),KDL::Frame::DH(2.75*.0254, M_PI/2.0, 0.0, M_PI/2.0)));  // Elbow to Forearm
-    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::RotZ),KDL::Frame::DH(0.0, -M_PI/2.0, 14*.0254, 0.0)));  // Forearm to Wrist Flop
-    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::RotZ),KDL::Frame::DH(0.0, M_PI/2.0, 0.0, 0.0)));  // Wrist Flop to Wrist Twist
-    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::RotZ),KDL::Frame::DH(0.0, 0.0, 9.5*.0254, 0.0)));  // Wrist Twist to EE
-
-    return chain;
-}
-
-// Establish initial joint angles from which to start finding suitable joint angles
-KDL::JntArray init_jnt_angles(int nJoints)
-{
-    KDL::JntArray q_init(nJoints);
-    q_init(0) = 0;
-    q_init(1) = M_PI/2.0;
-    q_init(2) = -M_PI/2.0;  
-    q_init(3) = 0.0;  
-    q_init(4) = -M_PI/2.0;  
-    q_init(5) = 0;  """
-
 def makeBox( msg ):
     global rx,ry,rz, marker
     marker.scale.x = msg.scale * .125
@@ -439,25 +430,27 @@ def makeMarker( fixed, interaction_mode, position, show_6dof = False):
         print int_marker
     server.insert(int_marker, processFeedback)
     menu_handler.apply( server, int_marker.name )
+
+
     
 if __name__=="__main__":
     rospy.init_node("hal_teleop",anonymous=True)
+
+    sub2 = rospy.Subscriber('joy', Joy, joyCallback)
+    sub3 = rospy.Subscriber('mode', String, ModeCallback)
     br = TransformBroadcaster()
 
     # create a timer to update the published transforms
-    rospy.Timer(rospy.Duration(0.05), frameCallback)
+    #rospy.Timer(rospy.Duration(0.05), frameCallback)
 
     server = InteractiveMarkerServer("hal_teleop")
-
-    #menu_handler.insert( "Send Pose", callback=processFeedback )
-    #menu_handler.insert( "Open Gripper", callback=processFeedback )
-    #menu_handler.insert( "Close Gripper", callback=processFeedback )
 
     position = Point( 0, 1.09, 0)
     makeMarker( True, InteractiveMarkerControl.MOVE_3D, position, True )
     print "Made the marker"
 
     server.applyChanges()
-
-    rospy.spin()
+    while not rospy.is_shutdown():
+        frameCallback()
+        rospy.sleep(.05)
 
