@@ -84,6 +84,7 @@ def frameCallback( msg ):
     br.sendTransform( (0, 0, sin(counter/140.0)*2.0), (0, 0, 0, 1.0), time2, "base_link", "moving_frame" )
     sub2 = rospy.Subscriber('joy', Joy, joyCallback)
     sub3 = rospy.Subscriber('mode', String, ModeCallback)
+    print update
     if update==False:
         sub1 = rospy.Subscriber('dynamixel_command', Float32MultiArray, Dyn_command)
         sub4 = rospy.Subscriber('rover_command', All, findCurrent, queue_size=1)
@@ -193,8 +194,8 @@ def findCurrent( msg ):
         #print T2*180/pi
         T3 = -((msg.q3+2224)*np.pi/4092-3*np.pi/4)#*180/np.pi
         T4 = ((msg.q4-945)*15*np.pi/4092-15*np.pi/4)#*180/np.pi #pi/2-pi/2+
-        print "T4"
-        print T1*180/pi, T2*180/pi, T3*180/pi, T4*180/pi
+        #print "T4"
+        #print T1*180/pi, T2*180/pi, T3*180/pi, T4*180/pi
         #print pz
         #T1=msg.q1
         #T2=msg.q2
@@ -228,55 +229,100 @@ def findCurrent( msg ):
         #    [sin(T6),cos(T6),0,0],
         #    [0,0,1,9.5*.0254],
         #    [0,0,0,1]])
+        Testrx=np.matrix([[cos(-pi/2),-sin(-pi/2),0,0],
+                        [sin(-pi/2),cos(-pi/2),0,0],
+                        [0,0,1,0],
+                        [0,0,0,1]])
+        Testrx2=np.matrix([[cos(pi),-sin(pi),0,0],
+                        [sin(pi),cos(pi),0,0],
+                        [0,0,1,0],
+                        [0,0,0,1]])
+        Testry=np.matrix([[cos(-pi/2),0,sin(-pi/2),0],
+                         [0,1,0,0],
+                         [-sin(-pi/2),0,cos(-pi/2),0],
+                         [0,0,0,1]])
+        Testryp=np.matrix([[cos(pi/2),0,sin(pi/2),0],
+                         [0,1,0,0],
+                         [-sin(pi/2),0,cos(pi/2),0],
+                         [0,0,0,1]])
+        Testrz=np.matrix([[1,0,0,0],
+                          [0,cos(-pi/2),-sin(-pi/2),0],
+                          [0,sin(-pi/2),cos(-pi/2),0],
+                          [0,0,0,1]])
         RM0=np.matrix([[1,0,0,0],
             [0,1,0,0],
             [0,0,1,0],
             [0,0,0,1]])
-        Test1=np.matrix([[cos(T1),-sin(T1),0,4.25*.0254*cos(T1)],
-            [sin(T1),cos(T1),0,4.25*.0254*sin(T1)],
+        #FIRST JOINT#
+        Test1a=np.matrix([[cos(T1),-sin(T1),0,0],
+                         [sin(T1),cos(T1),0,0],
+                         [0,0,1,0],
+                         [0,0,0,1]])
+        Test1b=np.matrix([[1,0,0,0],
+            [0,1,0,4.25*.0254],
             [0,0,1,3.5*.0254],
             [0,0,0,1]])
-        #Test2=np.matrix([[1,0,0,15*.0254*cos(T2)],
-        #                [0,cos(T2),-sin(T2),15*.0254*sin(T2)],
-        #                [0,sin(T2),cos(T2),0],
-        #                [0,0,0,1]])
-        Test2=np.matrix([[cos(T2),0,sin(T2),15*.0254*sin(T2)],#15*.0254*cos(T2)],
-                        [0,1,0,0],
-                        [-sin(T2),0,cos(T2),15*.0254*cos(T2)],#15*.0254*sin(T2)],
-                        [0,0,0,1]])
-        Test3=np.matrix([[cos(T3),0,sin(T3),2.75*.0254*sin(T3)],#15*.0254*cos(T2)],
-                        [0,1,0,0],
-                        [-sin(T3),0,cos(T3),2.75*.0254*cos(T3)],#15*.0254*sin(T2)],
-                        [0,0,0,1]])
-        Test4=np.matrix([[1,0,0,14*.0254],
-                        [0,cos(T4),-sin(T4),0],
-                        [0,sin(T4),cos(T4),0],
-                        [0,0,0,1]])
-        #Test4b=np.matrix([[cos(T4),-sin(T4),0,14*.0254],
-        #                 [sin(T4),cos(T4),0,0],
-        #                 [0,0,1,0],
-        #                 [0,0,0,1]])
-        #Test4c=np.matrix([[cos(T4),0,sin(T4),14*.0254],
-        #                 [0,1,0,0],
-        #                 [-sin(T4),0,cos(T4),0],
-        #                 [0,0,0,1]])
-        Test5=np.matrix([[cos(T5),0,sin(T5),0],
-                        [0,1,0,0],
-                        [-sin(T5),0,cos(T5),0],
-                        [0,0,0,1]])
-        Test6=np.matrix([[1,0,0,0*12.5*.0254],
-                        [0,cos(T6),-sin(T6),0*12.5*.0254],
-                        [0,sin(T6),cos(T6),9.5*.0254],
-                        [0,0,0,1]])
-        Test6b=np.matrix([[cos(T6),-sin(T6),0,0],
-                         [sin(T6),cos(T6),0,0],
-                         [0,0,1,9.5*.0254],
+        Test1=Test1a*Test1b
+        #SECOND JOINT#
+        Test2a=np.matrix([[1,0,0,0],
+                         [0,cos(T2),-sin(T2),0],
+                         [0,sin(T2),cos(T2),0],
                          [0,0,0,1]])
-        #Test1=np.matrix([1,2])*np.matrix([[1],[1]])
-        #Test3b=np.matrix([[1],[1],[1],[1]])
-#        Final=RM0*RM1*RM2*RM3*RM4*RM5*RM6
-        #Final=RM6*RM5*RM4*RM3*RM2*RM1*RM0
-        Final=RM0*Test1*Test2*Test3*Test4*Test5*Test6b#*Test2b
+        Test2b=np.matrix([[1,0,0,0],
+                        [0,1,0,15*.0254],
+                        [0,0,1,0],
+                        [0,0,0,1]])
+        Test2=Test2a*Test2b
+        #THIRD JOINT#
+        Test3a=np.matrix([[1,0,0,0],
+                         [0,cos(T3),-sin(T3),0],
+                         [0,sin(T3),cos(T3),0],
+                         [0,0,0,1]])
+        Test3b=np.matrix([[1,0,0,0],
+                        [0,1,0,0],
+                        [0,0,1,2.75*.0254],
+                        [0,0,0,1]])
+        Test3=Test3a*Test3b
+        #FOURTH JOINT#
+
+        Test4a=np.matrix([[cos(T4),0,sin(T4),0],
+                         [0,1,0,0],
+                         [-sin(T4),0,cos(T4),0],
+                         [0,0,0,1]])
+        Test4b=np.matrix([[1,0,0,0],
+                        [0,1,0,14*.0254],
+                        [0,0,1,0],
+                        [0,0,0,1]])
+        Test4=Test4a*Test4b
+        #FIFTH JOINT#
+        #Test5=np.matrix([[cos(T5),0,sin(T5),0],
+        #                [0,1,0,0],
+        #                [-sin(T5),0,cos(T5),0],
+        #                [0,0,0,1]])
+        #Test5=np.matrix([[cos(T5),-sin(T5),0,0],
+        #                [sin(T5),cos(T5),0,0],
+        #                [0,0,1,0],
+        #                [0,0,0,1]])
+        Test5=np.matrix([[1,0,0,0],
+                         [0,cos(T5),-sin(T5),0],
+                         [0,sin(T5),cos(T5),0],
+                         [0,0,0,1]])
+        #SIXTH JOINT#
+        #Test6a=np.matrix([[1,0,0,0*0],
+        #                [0,cos(T6),-sin(T6),0],
+        #                [0,sin(T6),cos(T6),0],
+        #                [0,0,0,1]])
+        Test6a=np.matrix([[cos(T6),0,sin(T6),0],
+                        [0,1,0,0],
+                        [-sin(T6),0,cos(T6),0],
+                        [0,0,0,1]])
+        Test6b=np.matrix([[1,0,0,0],
+                        [0,1,0,9.5*.0254],
+                        [0,0,1,0],
+                        [0,0,0,1]])
+        Test6=Test6a*Test6b*Testrz*Testrx
+        #MULTIPLY JOINT TOGETHER#
+        Final=RM0*Test1*Test2*Test3*Test4*Test5*Test6#*Test2b
         px=Final[0,3]
         py=Final[1,3]
         pz=Final[2,3]
