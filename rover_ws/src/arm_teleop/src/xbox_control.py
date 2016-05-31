@@ -10,6 +10,7 @@ import lib_robotis as lr
 from dynamixel_publisher import DynPub
 import numpy as np
 
+
 class XBOX():
     def __init__(self):
     # Variables
@@ -19,10 +20,10 @@ class XBOX():
         self.dyn_cmd = Float32MultiArray()
         self.invkin = UInt16MultiArray()
         self.prev_y = 0
-        self.case = 'Drive'
-        self.slow_case = 'Fast'
+        self.case = 'Drive-Fast'
         self.cam1_sel = 0
         self.cam2_sel = 0
+        self.analog_cam = 0
 
         self.invkin.data.append(0)
         self.invkin.data.append(90)
@@ -47,11 +48,11 @@ class XBOX():
         self.cmd.chutes = 0
         self.cmd.shovel = 1500
         self.check=True
-        
-        self.dyn.data.append(0.0)#(.17645)
-        self.dyn.data.append(0.0)#(.8761169)
-        self.dyn_cmd.data.append(0.0)#(.17645)
-        self.dyn_cmd.data.append(0.0)#(.8761169)
+
+        self.dyn.data.append(0.0)
+        self.dyn.data.append(0.0)
+        self.dyn_cmd.data.append(0.0)
+        self.dyn_cmd.data.append(0.0)
 
     # Publishers and Subscribers
         self.sub2 = rospy.Subscriber('joy', Joy, self.joyCallback)
@@ -64,8 +65,6 @@ class XBOX():
 
     # Callbacks
     def inversekin(self,msg):
-        #print "1: "
-        #print self.invkin.data
         if msg.solved == 1 and self.check == True:
             self.invkin.data[0] = msg.q[0]
             self.invkin.data[1] = msg.q[1]
@@ -73,10 +72,7 @@ class XBOX():
             self.invkin.data[3] = msg.q[3]
             self.wristangle.data[0] = msg.q[4]
             self.wristangle.data[1] = msg.q[5]
-            #print "2: "
-            #print self.invkin.data
-        #print "3: "
-        #print self.invkin.data
+
 
     def joyCallback(self,msg):
         self.joy=msg
@@ -85,15 +81,10 @@ class XBOX():
                 self.check=True
             else:
                 self.check=False
-        #print "5: "
-        #print self.invkin.data
 
     def dynCallback(self,msg):
         self.dyn.data[0] = msg.data[0]
         self.dyn.data[1] = msg.data[1]
-        
-        #print "6: "
-        #print self.invkin.data
 
     # Functions
     def check_method(self):
@@ -102,14 +93,14 @@ class XBOX():
         y = self.joy.buttons[3] # toggle between modes
         home = self.joy.buttons[8]
         if y == 1:
-            if self.case == 'Drive':
+            if self.case == 'Drive-Fast' or self.case == 'Drive-Med' or self.case == 'Drive-Slow':
                 self.case = 'Arm-xbox'
             elif self.case == 'Arm-xbox':
                 self.case = 'Chutes'
             elif self.case == 'Arm-IK':
                 self.case = 'Chutes'
             else:
-                self.case = 'Drive'
+                self.case = 'Drive-Fast'
             time.sleep(.25)
         elif home == 1:
             if self.case == 'Arm-xbox':
@@ -120,13 +111,14 @@ class XBOX():
 
     def slow_check(self):
         rb = self.joy.buttons[5]
-        if rb == 1 and self.case == 'Drive':
-            if self.slow_case == 'Fast':
-                self.slow_case = 'Slow'
-                time.sleep(.25)
-            elif self.slow_case == 'Slow':
-                self.slow_case = 'Fast'
-                time.sleep(.25)
+        if rb == 1:
+            if self.case == 'Drive-Fast':
+                self.case = 'Drive-Med'
+            elif self.case == 'Drive-Med':
+                self.case = 'Drive-Slow'
+            elif self.case == 'Drive-Slow':
+                self.case = 'Drive-Fast'
+            time.sleep(.25)
 
     def camera_select(self):
         # a selects between cameras 0-2, b selects between cameras 3-5
@@ -147,7 +139,7 @@ class XBOX():
                 self.cam2_sel = self.cam2_sel + 1
             time.sleep(.25)
         # Update command
-        self.cmd.camnum = (self.cam1_sel & 0x0f) | ((self.cam2_sel & 0x0f) << 4)
+        self.cmd.camnum = (self.analog_cam << 7) | ((self.cam1_sel & 0x0f) | ((self.cam2_sel & 0x0f) << 4))
 
     def cam_pan_tilt(self):
         x = self.joy.buttons[2]
@@ -196,22 +188,32 @@ class XBOX():
     # Drive Control ===============================================
     # ==========================================================================
     def driveCommand(self):
-        # Check for slow/fast mode
+        # Check for slow/medium/fast mode
         self.slow_check()
-        
+
         # Select between camera feeds with A & B on the xbox controller
         self.camera_select()
 
         # Calculate drive speeds
-        if self.slow_case == 'Fast':
+        if self.case == 'Drive-Fast':
             self.cmd.lw = self.joy.axes[1]*500 + 1500
             self.cmd.rw = self.joy.axes[4]*-500 + 1500
-        elif self.slow_case == 'Slow':
+        elif self.case == 'Drive-Med':
             self.cmd.lw = self.joy.axes[1]*250 + 1500
             self.cmd.rw = self.joy.axes[4]*-250 + 1500
+        elif self.case == 'Drive-Slow':
+            self.cmd.lw = self.joy.axes[1]*175 + 1500
+            self.cmd.rw = self.joy.axes[4]*-175 + 1500
 
         # Pan and Tilt
         self.cam_pan_tilt()
+
+        # Turn analog video on or off with left bumper
+        # On/off is most significant bit in camnum in command
+        lb = self.joy.buttons[4]
+        if lb == 1:
+            self.analog_cam ^= 1
+            time.sleep(.25)
 
         # Publish drive commands
         self.pub1.publish(self.cmd)
@@ -279,7 +281,7 @@ class XBOX():
             self.cmd.shovel = self.cmd.shovel-10.0
             if self.cmd.shovel < 1000:
                 self.cmd.shovel = 1000
-        elif self.joy.axes[5] > 0:
+        elif self.joy.axes[5] < 0:
             self.cmd.shovel = self.cmd.shovel+10.0
             if self.cmd.shovel > 2000:
                 self.cmd.shovel = 2000
@@ -379,7 +381,7 @@ class XBOX():
             self.cmd.shovel = self.cmd.shovel-10.0
             if self.cmd.shovel < 1000:
                 self.cmd.shovel = 1000
-        elif self.joy.axes[5] > 0:
+        elif self.joy.axes[5] < 0:
             self.cmd.shovel = self.cmd.shovel+10.0
             if self.cmd.shovel > 2000:
                 self.cmd.shovel = 2000
@@ -394,14 +396,26 @@ class XBOX():
         # Publish arm commands
         self.pub1.publish(self.cmd)
         self.pub4.publish(self.dyn_cmd)
-    
+
     # ==========================================================================
     # Chutes mode ===============================================
     # ==========================================================================
     def chutes(self):
+        # 7th bit is enable bit - keep it on
+        self.cmd.chutes |= 2^6
+        # get chute commands
+        c1 = self.joy.buttons[1]
+        c2 = self.joy.buttons[2]
+        c3 = self.joy.buttons[7]
+        c4 = self.joy.buttons[6]
+        c5 = self.joy.buttons[5]
+        c6 = self.joy.buttons[4]
+        # toggle whichever chute button was pressed
+        if c1 == 1 or c2 == 1 or c3 == 1 or c4 == 1 or c5 == 1 or c6 == 1:
+            self.cmd.chutes ^= c1 | (c2 << 1) | (c3 << 2) | (c4 << 3) | (c5 << 4) | (c6 << 5)
+            time.sleep(.25)
 
-        self.cmd.chutes = self.joy.buttons[1] | (self.joy.buttons[2] << 1) | (self.joy.buttons[7] << 2) | (self.joy.buttons[6] << 3) | (self.joy.buttons[5] << 4) | (self.joy.buttons[4] << 5) | (1 << 6) 
-
+        # self.cmd.chutes |= self.joy.buttons[1] | (self.joy.buttons[2] << 1) | (self.joy.buttons[7] << 2) | (self.joy.buttons[6] << 3) | (self.joy.buttons[5] << 4) | (self.joy.buttons[4] << 5) | (1 << 6)
         self.pub1.publish(self.cmd)
 
     # ==========================================================================
@@ -417,7 +431,7 @@ if __name__ == '__main__':
 
         if len(xbox.joy.buttons) > 0:
             xbox.check_method()
-            if xbox.case == 'Drive':
+            if xbox.case == 'Drive-Fast' or xbox.case == 'Drive-Med' or xbox.case == 'Drive-Slow':
                 xbox.driveCommand()
             elif xbox.case == 'Arm-xbox':
                 xbox.nofeedback()
