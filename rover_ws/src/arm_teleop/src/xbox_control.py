@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+# arm position to store the rover in the truck:
+# q1: 1815
+# q2: 1628
+# q3: 3616
+# q4: 1968
+
 import rospy, math
 from ctypes import c_ushort
 from rover_msgs.msg import Pololu, Drive, All, JointAngles
@@ -42,8 +48,8 @@ class XBOX():
         self.cmd.q2 = 968
         self.cmd.q3 = 2891
         self.cmd.q4 = 1968
-        self.cmd.q5 = 0.0
-        self.cmd.q6 = 0.0
+        self.cmd.q5 = 0.0 # low byte: laser on/off; high byte: electromagnet on/off
+        self.cmd.q6 = 0.0 # low byte: dynamixel on/off
         self.cmd.grip = 1000
         self.cmd.chutes = 0
         self.cmd.shovel = 1500
@@ -401,21 +407,44 @@ class XBOX():
     # Chutes mode ===============================================
     # ==========================================================================
     def chutes(self):
-        # 7th bit is enable bit - keep it on
-        self.cmd.chutes |= 2^6
+
         # get chute commands
+        '''
         c1 = self.joy.buttons[1]
         c2 = self.joy.buttons[2]
         c3 = self.joy.buttons[7]
         c4 = self.joy.buttons[6]
         c5 = self.joy.buttons[5]
         c6 = self.joy.buttons[4]
+        '''
+        #self.cmd.chutes |= c1 | (c2 << 1) | (c3 << 2) | (c4 << 3) | (c5 << 4) | (c6 << 5) | (1 << 7)
         # toggle whichever chute button was pressed
-        if c1 == 1 or c2 == 1 or c3 == 1 or c4 == 1 or c5 == 1 or c6 == 1:
-            self.cmd.chutes ^= c1 | (c2 << 1) | (c3 << 2) | (c4 << 3) | (c5 << 4) | (c6 << 5)
+        # if c1 == 1 or c2 == 1 or c3 == 1 or c4 == 1 or c5 == 1 or c6 == 1:
+        #     self.cmd.chutes ^= c1 | (c2 << 1) | (c3 << 2) | (c4 << 3) | (c5 << 4) | (c6 << 5)
+        #     time.sleep(.25)
+        # 7th bit is enable bit - keep it on
+        # self.cmd.chutes |= 2^6
+
+        self.cmd.chutes |= self.joy.buttons[1] | (self.joy.buttons[2] << 1) | (self.joy.buttons[7] << 2) | (self.joy.buttons[6] << 3) | (self.joy.buttons[5] << 4) | (self.joy.buttons[4] << 5) | (1 << 6)
+
+        # button A is toggle power to dynamixels
+        a = self.joy.buttons[0]
+        if a == 1:
+            self.cmd.q6 ^= 1
             time.sleep(.25)
 
-        # self.cmd.chutes |= self.joy.buttons[1] | (self.joy.buttons[2] << 1) | (self.joy.buttons[7] << 2) | (self.joy.buttons[6] << 3) | (self.joy.buttons[5] << 4) | (self.joy.buttons[4] << 5) | (1 << 6)
+        # press left joystick is toggle laser on/off
+        leftjoy = self.joy.buttons[9]
+        if leftjoy == 1:
+            self.cmd.q5 ^= 1
+            time.sleep(.25)
+
+        # press right joystick is toggle electromagnet on/off
+        rightjoy = self.joy.buttons[10]
+        if rightjoy == 1:
+            self.cmd.q6 ^= 1
+            time.sleep(.25)
+
         self.pub1.publish(self.cmd)
 
     # ==========================================================================
