@@ -207,7 +207,7 @@ def findCurrent( msg ):
         T4 = pi+((msg.q4-945)*15*np.pi/4092-15*np.pi/4)#*180/np.pi #pi/2-pi/2+
         '''
         T1 = ((msg.q1+196)*(3.0*np.pi/2.0)/4092.0-(3*np.pi)/4.0)#*180/np.pi
-        T2 = -((msg.q2-3696)*(3.0*np.pi/4)/4092)#*180/np.pi#-pi/2
+        T2 = -((msg.q2-1991)*np.pi/4092-np.pi/4.0)#*180/np.pi#-pi/2
         #print T2*180/pi
         T3 = -((msg.q3+2224)*np.pi/4092-3*np.pi/4)#*180/np.pi
         T4 = ((msg.q4-945)*15*np.pi/4092-15*np.pi/4)#*180/np.pi #pi/2-pi/2+

@@ -1,7 +1,7 @@
 <launch>
   
   <!--GPS-->
-  <node name="gps_node"  pkg="nmea_navsat_driver"   type="nmea_serial_driver" output="screen" args="_port:=/dev/ttyUSB1 _baud:=4800"/>
+  <node name="gps_node"  pkg="nmea_navsat_driver"   type="nmea_serial_driver" output="screen" args="_port:=/dev/ttyUSB2 _baud:=4800"/>
 
   <!--IMU-->
   <arg name="razor_config_file" default="$(find rover_launch)/config/my_razor.yaml"/>

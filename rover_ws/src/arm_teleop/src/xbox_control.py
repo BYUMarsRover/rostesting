@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # arm position to store the rover in the truck:
-# q1: 1815
+# q1: 2048
 # q2: 1628
 # q3: 3616
 # q4: 1968
@@ -26,7 +26,7 @@ class XBOX():
         self.dyn_cmd = Float32MultiArray()
         self.invkin = UInt16MultiArray()
         self.prev_y = 0
-        self.case = 'Drive-Fast'
+        self.case = 'Drive-Med'
         self.cam1_sel = 0
         self.cam2_sel = 0
         self.analog_cam = 0
@@ -44,13 +44,13 @@ class XBOX():
         self.cmd.pan = 1500
         self.cmd.tilt = 1500
         self.cmd.camnum = 0
-        self.cmd.q1 = 1815
+        self.cmd.q1 = 2048
         self.cmd.q2 = 968
         self.cmd.q3 = 2891
         self.cmd.q4 = 1968
-        self.cmd.q5 = 0.0 # low byte: laser on/off; high byte: electromagnet on/off
-        self.cmd.q6 = 0.0 # low byte: dynamixel on/off
-        self.cmd.grip = 1000
+        self.cmd.q5 = 0.0
+        self.cmd.q6 = 0.0
+        self.cmd.grip = 0 # low byte: grip; high byte: xxxx x laser | electromagnet | dynamixel
         self.cmd.chutes = 0
         self.cmd.shovel = 1500
         self.check=True
@@ -184,11 +184,11 @@ class XBOX():
         rb = self.joy.buttons[5]
         lb = self.joy.buttons[4]
         if rb == 1:
-            self.cmd.grip = 2
+            self.cmd.grip = (self.cmd.grip & 0xff00) | 2
         elif lb == 1:
-            self.cmd.grip = 1
+            self.cmd.grip = (self.cmd.grip & 0xff00) | 1
         else:
-            self.cmd.grip = 0
+            self.cmd.grip = (self.cmd.grip & 0xff00)
 
     # ==========================================================================
     # Drive Control ===============================================
@@ -230,9 +230,10 @@ class XBOX():
     def arm_IK(self):
 
         self.cmd.q1=int(round(-196+(self.invkin.data[0]*np.pi/180.0+3.0*np.pi/4.0)*(4092/(3*np.pi/2))))
-        self.cmd.q2=int(round(3696+(-self.invkin.data[1]*np.pi/180)*(4092/(3*np.pi/4))))
+        #self.cmd.q2=int(round(3696+(-self.invkin.data[1]*np.pi/180)*(4092/(3*np.pi/4))))
+        self.cmd.q2=int(round(1991+(-self.invkin.data[1]*np.pi/180+np.pi/4)*(4092/(np.pi))))
         self.cmd.q3=int(round(-2224+(-self.invkin.data[2]*np.pi/180+3*np.pi/4)*(4092/(np.pi))))
-        #self.cmd.q4=int(round(945+(self.invkin.data[3]*np.pi/180+15*np.pi/4)*(4092/(15*np.pi))))
+        self.cmd.q4=int(round(945+(self.invkin.data[3]*np.pi/180+15*np.pi/4)*(4092/(15*np.pi))))
         
         # make sure they are valid joint angles between [0, 4095]
         # turret
@@ -243,15 +244,13 @@ class XBOX():
         # shoulder
         if self.cmd.q2 < 0:
             self.cmd.q2 = 0
-        elif self.cmd.q2 > 4095:
-            self.cmd.q2 = 4095
+        elif self.cmd.q2 > 4092:
+            self.cmd.q2 = 4092
         # elbow
         if self.cmd.q3 < 0:
             self.cmd.q3 = 0
         elif self.cmd.q3 > 4095:
             self.cmd.q3 = 4095
-
-        '''
         # forearm
         if self.cmd.q4 < 0:
             self.cmd.q4 = 0
@@ -271,7 +270,7 @@ class XBOX():
         # set wrist publisher data
         self.dyn_cmd.data[0]=math.radians(self.wristangle.data[0])
         self.dyn_cmd.data[1]=math.radians(self.wristangle.data[1])
-        '''
+
 
         # Select between camera feeds with A & B on the xbox controller
         self.camera_select()
@@ -294,7 +293,7 @@ class XBOX():
 
         # Publish arm commands
         self.pub1.publish(self.cmd)
-        #self.pub4.publish(self.dyn_cmd)
+        self.pub4.publish(self.dyn_cmd)
 
     # ==========================================================================
     # Xbox Arm Control ===============================================
@@ -353,26 +352,26 @@ class XBOX():
         #self.invkin.data[1] = -180/np.pi*((self.cmd.q2-3696)*3*np.pi/4/4092)
         #self.invkin.data[2] = 180/np.pi*((self.cmd.q3-1500)*np.pi/4092-3*np.pi/4)
         #self.invkin.data[3] = 180/np.pi((self.cmd.q4-945)*15*np.pi/4092-15*np.pi/4)
-        #self.dyn.data[0]=self.dyn_cmd.data[0]
-        #self.dyn.data[1]=self.dyn_cmd.data[1]
+        self.dyn.data[0]=self.dyn_cmd.data[0]
+        self.dyn.data[1]=self.dyn_cmd.data[1]
 
         # Joint 5
         if self.joy.axes[4] > .5:
-            self.dyn_cmd.data[0] = self.dyn.data[0]+math.radians(5.0)
+            self.dyn_cmd.data[0] = self.dyn.data[0]+math.radians(0.5)
             if self.dyn_cmd.data[0] > math.radians(89.0):
                 self.dyn_cmd.data[0] = math.radians(89.0)
         elif self.joy.axes[4]<-.5:
-            self.dyn_cmd.data[0] = self.dyn.data[0]-math.radians(5.0)
+            self.dyn_cmd.data[0] = self.dyn.data[0]-math.radians(0.5)
             if self.dyn_cmd.data[0] < math.radians(-89.0):
                 self.dyn_cmd.data[0] = math.radians(-89.0)
 
         # Joint 6
         if self.joy.axes[3] > .5:
-            self.dyn_cmd.data[1] = self.dyn.data[1]-math.radians(5.0)
+            self.dyn_cmd.data[1] = self.dyn.data[1]-math.radians(0.5)
             if self.dyn_cmd.data[1] < math.radians(-179.0):
                 self.dyn_cmd.data[1] = math.radians(-179.0)
         elif self.joy.axes[3]<-.5:
-            self.dyn_cmd.data[1] = self.dyn.data[1]+math.radians(5.0)
+            self.dyn_cmd.data[1] = self.dyn.data[1]+math.radians(0.5)
             if self.dyn_cmd.data[1] > math.radians(179.0):
                 self.dyn_cmd.data[1] = math.radians(179.0)
 
@@ -383,6 +382,7 @@ class XBOX():
         self.gripper()
 
         # Shovel
+        '''
         if self.joy.axes[2] < 0:
             self.cmd.shovel = self.cmd.shovel-10.0
             if self.cmd.shovel < 1000:
@@ -391,6 +391,14 @@ class XBOX():
             self.cmd.shovel = self.cmd.shovel+10.0
             if self.cmd.shovel > 2000:
                 self.cmd.shovel = 2000
+        '''
+        # Shovel: COMMENT OUT WHEN NOT IN SCIENCE
+        
+        if self.joy.axes[2] < 0:
+            self.cmd.chutes = 96
+        elif self.joy.axes[5] < 0:
+            self.cmd.chutes = 64
+        
 
         #self.cmd.q1 = 1850
         #self.cmd.q2 = 968
@@ -408,41 +416,25 @@ class XBOX():
     # ==========================================================================
     def chutes(self):
 
-        # get chute commands
-        '''
-        c1 = self.joy.buttons[1]
-        c2 = self.joy.buttons[2]
-        c3 = self.joy.buttons[7]
-        c4 = self.joy.buttons[6]
-        c5 = self.joy.buttons[5]
-        c6 = self.joy.buttons[4]
-        '''
-        #self.cmd.chutes |= c1 | (c2 << 1) | (c3 << 2) | (c4 << 3) | (c5 << 4) | (c6 << 5) | (1 << 7)
-        # toggle whichever chute button was pressed
-        # if c1 == 1 or c2 == 1 or c3 == 1 or c4 == 1 or c5 == 1 or c6 == 1:
-        #     self.cmd.chutes ^= c1 | (c2 << 1) | (c3 << 2) | (c4 << 3) | (c5 << 4) | (c6 << 5)
-        #     time.sleep(.25)
-        # 7th bit is enable bit - keep it on
-        # self.cmd.chutes |= 2^6
-
-        self.cmd.chutes |= self.joy.buttons[1] | (self.joy.buttons[2] << 1) | (self.joy.buttons[7] << 2) | (self.joy.buttons[6] << 3) | (self.joy.buttons[5] << 4) | (self.joy.buttons[4] << 5) | (1 << 6)
+# COMMENT OUT THE FOLLOWING LINE FOR SCIENCE:
+#        self.cmd.chutes = self.joy.buttons[1] | (self.joy.buttons[2] << 1) | (self.joy.buttons[7] << 2) | (self.joy.buttons[6] << 3) | (self.joy.buttons[5] << 4) | (self.joy.buttons[4] << 5) | (1 << 6)
 
         # button A is toggle power to dynamixels
         a = self.joy.buttons[0]
         if a == 1:
-            self.cmd.q6 ^= 1
-            time.sleep(.25)
-
-        # press left joystick is toggle laser on/off
-        leftjoy = self.joy.buttons[9]
-        if leftjoy == 1:
-            self.cmd.q5 ^= 1
+            self.cmd.grip ^= 0x0100
             time.sleep(.25)
 
         # press right joystick is toggle electromagnet on/off
         rightjoy = self.joy.buttons[10]
         if rightjoy == 1:
-            self.cmd.q6 ^= 1
+            self.cmd.grip ^= 0x0200
+            time.sleep(.25)
+
+        # press left joystick is toggle laser on/off
+        leftjoy = self.joy.buttons[9]
+        if leftjoy == 1:
+            self.cmd.grip ^= 0x0400
             time.sleep(.25)
 
         self.pub1.publish(self.cmd)
