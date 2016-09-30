@@ -3,11 +3,9 @@
 import rospy, math
 from ctypes import c_ushort
 from rover_msgs.msg import Pololu, Drive, All, JointAngles
-from sensor_msgs.msg import Joy
+from sensor_msgs.msg import Joy, JointState
 from std_msgs.msg import String,Float32MultiArray,UInt16MultiArray, Header
 import time
-import lib_robotis as lr
-from dynamixel_publisher import DynPub
 import numpy as np
 
 
@@ -16,11 +14,12 @@ class XBOX():
     # Variables
         self.joy = Joy()
         self.cmd = All()
+        self.Xbox_joints = JointState()
         self.dyn = Float32MultiArray()
         self.dyn_cmd = Float32MultiArray()
         self.invkin = UInt16MultiArray()
         self.prev_y = 0
-        self.case = 'Drive-Fast'
+        self.case = 'Arm-xbox'
         self.cam1_sel = 0
         self.cam2_sel = 0
         self.analog_cam = 0
@@ -48,6 +47,16 @@ class XBOX():
         self.cmd.chutes = 0
         self.cmd.shovel = 1500
         self.check=True
+        
+        # Initialize Xboxjoints
+        self.Xbox_joints.header = Header()
+        #self.Xbox_joints.header.seq = ''
+        self.Xbox_joints.header.stamp = rospy.Time.now()
+        #self.Xbox_joints.header.frame_id = ''
+        self.Xbox_joints.name = ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']
+        self.Xbox_joints.position = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.Xbox_joints.velocity = []
+        self.Xbox_joints.effort = []      
 
         self.dyn.data.append(0.0)
         self.dyn.data.append(0.0)
@@ -59,6 +68,7 @@ class XBOX():
         self.sub3 = rospy.Subscriber('dynamixel_feedback', Float32MultiArray,self.dynCallback)
         self.sub4 = rospy.Subscriber('SetJointGoal', JointAngles, self.inversekin)
         self.pub1 = rospy.Publisher('/rover_command', All, queue_size = 10)
+        self.pub_joints = rospy.Publisher('/joint_states', JointState, queue_size = 10)
         self.pub3 = rospy.Publisher('/mode', String, queue_size = 10)
         self.pub4 = rospy.Publisher('/dynamixel_command',Float32MultiArray,queue_size = 1)
         self.pub5 = rospy.Publisher('/debug_invkin',UInt16MultiArray, queue_size = 1)
@@ -302,6 +312,31 @@ class XBOX():
 
         # Calculate how to command arm (position control)
         
+        MAX_RATE = 5*np.pi/180
+        DEADZONE = 0.1
+        
+        # Read in axis values
+        axes = [self.joy.axes[0], self.joy.axes[1], self.joy.axes[7],
+            self.joy.axes[6], self.joy.axes[4], self.joy.axes[3]]
+        
+        # Set axis to zero in deadzone
+        for ax in axes:
+            if abs(ax) < DEADZONE:
+                ax = 0
+                
+        # Update joint angles
+        for i in range(0,5):
+            self.Xbox_joints.position[i] += axes[i]*MAX_RATE
+        
+        # Set joint angle limits
+        for joint in self.Xbox_joints.position:
+            if joint > np.pi:
+                joint = np.pi
+            elif joint < -np.pi:
+                joint = -np.pi
+            
+                
+        
         # Joint 1
         if self.joy.axes[0] < -.5:
             self.cmd.q1 = self.cmd.q1-3
@@ -392,10 +427,12 @@ class XBOX():
         #self.cmd.q4 = 1968
         #self.cmd.q5 = 0.
         #self.cmd.q6 = 0.0
+        
 
         # Publish arm commands
         self.pub1.publish(self.cmd)
         self.pub4.publish(self.dyn_cmd)
+        self.pub_joints.publish(self.Xbox_joints)
 
     # ==========================================================================
     # Chutes mode ===============================================
