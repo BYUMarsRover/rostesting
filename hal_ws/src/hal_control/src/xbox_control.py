@@ -72,6 +72,8 @@ class XBOX():
         self.pub3 = rospy.Publisher('/mode', String, queue_size = 10)
         self.pub4 = rospy.Publisher('/dynamixel_command',Float32MultiArray,queue_size = 1)
         self.pub5 = rospy.Publisher('/debug_invkin',UInt16MultiArray, queue_size = 1)
+        
+       
 
     # Callbacks
     def inversekin(self,msg):
@@ -107,7 +109,7 @@ class XBOX():
                 self.case = 'Arm-xbox'
             elif self.case == 'Arm-xbox':
                 self.case = 'Chutes'
-            elif self.case == 'Arm-IK':
+            elif self.case == 'Arm-IK':     
                 self.case = 'Chutes'
             else:
                 self.case = 'Drive-Fast'
@@ -312,7 +314,7 @@ class XBOX():
 
         # Calculate how to command arm (position control)
         
-        MAX_RATE = 5*np.pi/180
+        MAX_RATE = 10*np.pi/180
         DEADZONE = 0.1
         
         # Read in axis values
@@ -320,22 +322,26 @@ class XBOX():
             self.joy.axes[6], self.joy.axes[4], self.joy.axes[3]]
         
         # Set axis to zero in deadzone
-        for ax in axes:
-            if abs(ax) < DEADZONE:
-                ax = 0
+        for i in range(0,len(axes)):
+            if abs(axes[i])<DEADZONE:
+                axes[i] = 0
                 
         # Update joint angles
-        for i in range(0,5):
+        for i in range(0,6):
             self.Xbox_joints.position[i] += axes[i]*MAX_RATE
         
         # Set joint angle limits
-        for joint in self.Xbox_joints.position:
-            if joint > np.pi:
-                joint = np.pi
-            elif joint < -np.pi:
-                joint = -np.pi
+        for i in range(0,len(self.Xbox_joints.position)):
+            if self.Xbox_joints.position[i] > np.pi:
+                print "upper limit"
+                self.Xbox_joints.position[i] = np.pi
+                print self.Xbox_joints.position[i]
+            elif self.Xbox_joints.position[i] < -np.pi:
+                self.Xbox_joints.position[i] = -np.pi
             
-                
+        print self.Xbox_joints.position
+        
+        self.Xbox_joints.header.stamp = rospy.Time.now()
         
         # Joint 1
         if self.joy.axes[0] < -.5:
@@ -460,9 +466,10 @@ class XBOX():
     # ==========================================================================
 if __name__ == '__main__':
     rospy.init_node('xbox_control', anonymous = True)
-    hz = 60.0
+    hz = 10.0
     rate = rospy.Rate(hz)
     xbox=XBOX()
+    
 
     while not rospy.is_shutdown():
 
@@ -476,6 +483,8 @@ if __name__ == '__main__':
                 xbox.arm_IK()
             else:
                 xbox.chutes()
+        else:
+            xbox.pub_joints.publish(xbox.Xbox_joints)
 
         xbox.pub3.publish(xbox.case)
 
